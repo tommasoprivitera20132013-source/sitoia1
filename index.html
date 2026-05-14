@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="Risultati sportivi in tempo reale - Calcio, Basket, Formula 1">
+  <title>SportLive – Risultati in Tempo Reale</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="logo">
+      <span class="logo-bolt">⚡</span>
+      <span class="logo-name">Sport<span class="logo-live">Live</span></span>
+    </div>
+
+    <nav class="sport-tabs" id="sport-tabs">
+      <button class="sport-tab active" data-sport="football">
+        <span class="tab-icon">⚽</span><span class="tab-label">Calcio</span>
+      </button>
+      <button class="sport-tab" data-sport="basketball">
+        <span class="tab-icon">🏀</span><span class="tab-label">Basket</span>
+      </button>
+      <button class="sport-tab" data-sport="f1">
+        <span class="tab-icon">🏎️</span><span class="tab-label">Formula 1</span>
+      </button>
+    </nav>
+
+    <div class="header-meta">
+      <div class="live-pill">
+        <span class="live-dot"></span>LIVE
+      </div>
+      <span class="refresh-label" id="refresh-label">Aggiorna in 30s</span>
+    </div>
+  </header>
+
+  <!-- MOBILE LEAGUE BAR -->
+  <div class="mobile-leagues" id="mobile-leagues"></div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-title">Competizioni</div>
+      <nav class="league-nav" id="league-nav"></nav>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="content-header">
+        <h2 class="page-title" id="page-title">Champions League 🏆</h2>
+        <div class="view-tabs" id="view-tabs">
+          <button class="view-tab active" data-view="scores">Risultati</button>
+          <button class="view-tab" data-view="standings">Classifica</button>
+          <button class="view-tab" data-view="scorers">Marcatori</button>
+        </div>
+      </div>
+
+      <div id="content">
+        <div class="loading">
+          <div class="spinner"></div>
+          <p>Caricamento in corso…</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <span>Dati: ESPN · Jolpica F1</span>
+    <span id="updated-at">—</span>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
