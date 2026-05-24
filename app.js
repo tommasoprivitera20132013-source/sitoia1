@@ -549,16 +549,23 @@ async function loadStandings(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const url=`${ESPN}/${espnSport()}/${espnPath()}/standings`;
-    const res=await fetch(url);
-    if(!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
-    const data=await res.json();
-    console.log('[SportLive] standings data keys:', Object.keys(data));
+    // Try two ESPN endpoints — site.api (primary) and site.web.api (fallback)
+    const urls=[
+      `${ESPN}/${espnSport()}/${espnPath()}/standings`,
+      `https://site.web.api.espn.com/apis/v2/sports/${espnSport()}/${espnPath()}/standings`,
+    ];
+    let data=null;
+    for(const url of urls){
+      try{
+        const res=await fetch(url);
+        if(res.ok){data=await res.json();break;}
+      }catch{}
+    }
+    if(!data) throw new Error('Tutti gli endpoint non hanno risposto');
     const entries=extractEntries(data);
-    console.log('[SportLive] entries found:', entries.length);
     if(!entries.length){
       el.innerHTML=`<div class="error-state"><p>${t('classifica_nd')}</p>
-        <small style="color:var(--txt3);font-size:.72rem">Apri la console del browser (F12) per dettagli</small>
+        <small style="color:var(--txt3);font-size:.72rem">Dati non trovati nella risposta ESPN</small>
         <button onclick="loadContent()" style="margin-top:10px;padding:8px 20px;background:var(--blue);color:#fff;border-radius:6px;font-size:.85rem">${t('riprova')}</button>
       </div>`;
       return;
@@ -612,11 +619,18 @@ async function loadScorers(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const url=`${ESPN}/${espnSport()}/${espnPath()}/leaders`;
-    const res=await fetch(url);
-    if(!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
-    const data=await res.json();
-    console.log('[SportLive] leaders data keys:', Object.keys(data));
+    const urls=[
+      `${ESPN}/${espnSport()}/${espnPath()}/leaders`,
+      `https://site.web.api.espn.com/apis/v2/sports/${espnSport()}/${espnPath()}/leaders`,
+    ];
+    let data=null;
+    for(const url of urls){
+      try{
+        const res=await fetch(url);
+        if(res.ok){data=await res.json();break;}
+      }catch{}
+    }
+    if(!data) throw new Error('Tutti gli endpoint non hanno risposto');
     const cats=data.leaders||data.categories||[];
     console.log('[SportLive] leader categories:', cats.map(c=>c.name));
     const gl=cats.find(c=>['goals','goalsScoredTotal','goalsScored'].includes(c.name))
