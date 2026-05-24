@@ -371,6 +371,7 @@ function setupTabs(){qsa('.sport-tab,.msport-btn').forEach(btn=>{btn.onclick=()=
 function switchSport(sport){
   qsa('.sport-tab').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
   qsa('.msport-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
+  document.querySelectorAll('.bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
   if(sport==='news'){S.sport='news';$id('view-tabs').style.display='none';loadNews();return;}
   if(sport==='f1'){selectComp('f1.current','f1','f1');return;}
   if(sport==='basketball'){selectComp('nba','nba','basketball');return;}
@@ -380,6 +381,7 @@ function switchSport(sport){
 /* ── COMP SELECT ──────────────────────────────────────────── */
 function selectComp(compId,et,sport){
   S.compId=compId; S.et=et||'soccer'; S.sport=sport||'football'; S.view='scores';
+  document.querySelectorAll('.bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===S.sport));
   qsa('.comp-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===compId));
   const ci=compInfo(compId); $id('page-title').textContent=ci.name||compId;
   const showTabs=sport!=='f1'&&sport!=='news';

@@ -1,18 +1,46 @@
 {
-  "name": "SportLive – Risultati in Tempo Reale",
+  "name": "SportLive - Risultati in Tempo Reale",
   "short_name": "SportLive",
-  "description": "Risultati live di Calcio, Basket e Formula 1 con classifiche e marcatori",
-  "start_url": "/sitoia1/",
+  "description": "Risultati live di Calcio, Basket e Formula 1. Classifiche, marcatori e fantacalcio.",
+  "start_url": "/sitoia1/?source=pwa",
   "scope": "/sitoia1/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0d1117",
-  "theme_color": "#0d1117",
+  "background_color": "#ffffff",
+  "theme_color": "#1d4ed8",
   "lang": "it",
-  "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
+  "dir": "ltr",
   "categories": ["sports", "news"],
-  "screenshots": []
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Serie A",
+      "short_name": "Serie A",
+      "description": "Risultati Serie A",
+      "url": "/sitoia1/?comp=ita.1&source=shortcut",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Champions League",
+      "short_name": "Champions",
+      "description": "Risultati Champions League",
+      "url": "/sitoia1/?comp=UEFA.CHAMPIONS&source=shortcut",
+      "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "icons/screenshot1.png",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Risultati in tempo reale"
+    }
+  ]
 }
