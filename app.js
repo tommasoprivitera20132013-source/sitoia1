@@ -522,37 +522,61 @@ function checkGoals(events){
 
 /* ── STANDINGS ────────────────────────────────────────────── */
 function extractEntries(data){
+  // Depth-first search for entries array anywhere in the response
   if(data.standings?.entries?.length) return data.standings.entries;
+  if(Array.isArray(data.standings)) {
+    const flat=data.standings.flatMap(s=>s.entries||[]);
+    if(flat.length) return flat;
+  }
   if(data.children?.length){
     const flat=data.children.flatMap(c=>c.standings?.entries||[]);
     if(flat.length) return flat;
     const deep=data.children.flatMap(c=>(c.children||[]).flatMap(cc=>cc.standings?.entries||[]));
     if(deep.length) return deep;
+    const deeper=data.children.flatMap(c=>(c.children||[]).flatMap(cc=>(cc.children||[]).flatMap(ccc=>ccc.standings?.entries||[])));
+    if(deeper.length) return deeper;
   }
   return [];
+}
+
+function statVal(stats,name,fallback='-'){
+  const s=stats[name];
+  if(!s) return fallback;
+  return s.value??s.displayValue??fallback;
 }
 
 async function loadStandings(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/standings`);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const url=`${ESPN}/${espnSport()}/${espnPath()}/standings`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
     const data=await res.json();
+    console.log('[SportLive] standings data keys:', Object.keys(data));
     const entries=extractEntries(data);
-    if(!entries.length){el.innerHTML=`<div class="empty-state"><p>${t('classifica_nd')}</p></div>`;return;}
+    console.log('[SportLive] entries found:', entries.length);
+    if(!entries.length){
+      el.innerHTML=`<div class="error-state"><p>${t('classifica_nd')}</p>
+        <small style="color:var(--txt3);font-size:.72rem">Apri la console del browser (F12) per dettagli</small>
+        <button onclick="loadContent()" style="margin-top:10px;padding:8px 20px;background:var(--blue);color:#fff;border-radius:6px;font-size:.85rem">${t('riprova')}</button>
+      </div>`;
+      return;
+    }
     const rows=entries.map((entry,i)=>{
       const team=entry.team||{};
       const stats=Object.fromEntries((entry.stats||[]).map(s=>[s.name,s]));
       const logo=team.logos?.[0]?.href||`https://a.espncdn.com/i/teamlogos/soccer/500/${team.id}.png`;
-      const pts=stats.points?.value??stats.pts?.value??'-';
-      const gp=stats.gamesPlayed?.value??stats.played?.value??'-';
-      const w=stats.wins?.value??'-';
-      const dr=stats.ties?.value??stats.draws?.value??'-';
-      const l=stats.losses?.value??'-';
-      const gf=stats.pointsFor?.value??stats.gf?.value??'-';
-      const ga=stats.pointsAgainst?.value??stats.ga?.value??'-';
-      const gd=stats.pointDifferential?.value??stats.gd?.value??'-';
+      const pts=statVal(stats,'points',statVal(stats,'pts'));
+      const gp=statVal(stats,'gamesPlayed',statVal(stats,'played'));
+      const w=statVal(stats,'wins',statVal(stats,'W'));
+      const dr=statVal(stats,'ties',statVal(stats,'draws',statVal(stats,'D')));
+      const l=statVal(stats,'losses',statVal(stats,'L'));
+      const gf=statVal(stats,'pointsFor',statVal(stats,'gf',statVal(stats,'GF')));
+      const ga=statVal(stats,'pointsAgainst',statVal(stats,'ga',statVal(stats,'GA')));
+      const gdRaw=statVal(stats,'pointDifferential',statVal(stats,'gd',statVal(stats,'GD')));
+      const gdNum=parseFloat(gdRaw);
+      const gdStr=!isNaN(gdNum)?(gdNum>0?'+':'')+gdNum:gdRaw;
       const n=entries.length;
       const rkCls=i<1?'rk ucl r1':i<4?'rk ucl':i<6?'rk uel':i>=n-3?'rk rel':'rk';
       return `<tr>
@@ -560,7 +584,7 @@ async function loadStandings(){
         <td class="left"><div class="td-team"><img src="${logo}" onerror="this.style.display='none'">
           <span>${esc(team.shortDisplayName||team.displayName||'')}</span></div></td>
         <td>${gp}</td><td>${w}</td><td>${dr}</td><td>${l}</td><td>${gf}</td><td>${ga}</td>
-        <td>${typeof gd==='number'?(gd>0?'+':'')+gd:gd}</td><td class="pts">${pts}</td>
+        <td>${gdStr}</td><td class="pts">${pts}</td>
       </tr>`;
     }).join('');
     el.innerHTML=`<div class="table-wrap"><table>
@@ -574,7 +598,13 @@ async function loadStandings(){
         <span><span class="rk rel" style="display:inline-flex">18+</span> Retrocessione</span>
       </div>`;
     updateTs();
-  }catch{el.innerHTML=`<div class="error-state"><p>${t('classifica_nd')}</p></div>`;}
+  }catch(err){
+    console.error('[SportLive] standings error:', err);
+    el.innerHTML=`<div class="error-state"><p>${t('classifica_nd')}</p>
+      <small style="color:var(--txt3);font-size:.72rem">${esc(err.message)}</small>
+      <button onclick="loadContent()" style="margin-top:10px;padding:8px 20px;background:var(--blue);color:#fff;border-radius:6px;font-size:.85rem">${t('riprova')}</button>
+    </div>`;
+  }
 }
 
 /* ── SCORERS ──────────────────────────────────────────────── */
@@ -582,13 +612,17 @@ async function loadScorers(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/leaders`);
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const url=`${ESPN}/${espnSport()}/${espnPath()}/leaders`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error(`HTTP ${res.status} — ${url}`);
     const data=await res.json();
-    const cats=data.leaders||[];
-    const gl=cats.find(c=>c.name==='goals'||c.name==='goalsScoredTotal')
-      ||cats.find(c=>c.name==='points'||c.name==='scoring')||cats[0];
-    const leaders=(gl?.leaders||[]).slice(0,20);
+    console.log('[SportLive] leaders data keys:', Object.keys(data));
+    const cats=data.leaders||data.categories||[];
+    console.log('[SportLive] leader categories:', cats.map(c=>c.name));
+    const gl=cats.find(c=>['goals','goalsScoredTotal','goalsScored'].includes(c.name))
+      ||cats.find(c=>['points','scoring','assists'].includes(c.name))
+      ||cats[0];
+    const leaders=(gl?.leaders||gl?.athletes||[]).slice(0,20);
     if(!leaders.length){el.innerHTML=`<div class="empty-state"><p>${t('marcatori_nd')}</p></div>`;return;}
     const rows=leaders.map((l,i)=>{
       const a=l.athlete||{};
@@ -608,7 +642,13 @@ async function loadScorers(){
     }).join('');
     el.innerHTML=`<div class="scorers-wrap">${rows}</div>`;
     updateTs();
-  }catch{el.innerHTML=`<div class="error-state"><p>${t('marcatori_nd')}</p></div>`;}
+  }catch(err){
+    console.error('[SportLive] scorers error:', err);
+    el.innerHTML=`<div class="error-state"><p>${t('marcatori_nd')}</p>
+      <small style="color:var(--txt3);font-size:.72rem">${esc(err.message)}</small>
+      <button onclick="loadContent()" style="margin-top:10px;padding:8px 20px;background:var(--blue);color:#fff;border-radius:6px;font-size:.85rem">${t('riprova')}</button>
+    </div>`;
+  }
 }
 
 /* ── FORMULA 1 ────────────────────────────────────────────── */
