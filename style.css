@@ -842,13 +842,14 @@ tbody tr:hover td{background:rgba(29,78,216,.025)}
 .cat-section{display:flex;flex-direction:column}
 
 /* ── Fanta squad section ── */
-.fanta-squad-sec{border-top:1px solid var(--border);padding-bottom:8px}
+.fanta-squad-sec{border-top:2px solid rgba(22,163,74,.2);padding-bottom:10px;background:rgba(22,163,74,.02)}
 .fanta-squad-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px}
-.fanta-cnt{font-size:.7rem;font-weight:700;background:var(--blue);color:#fff;padding:2px 7px;border-radius:10px}
+.fanta-cnt{font-size:.68rem;font-weight:800;background:var(--green);color:#fff;padding:2px 8px;border-radius:10px;min-width:22px;text-align:center}
 .fanta-add-row{display:flex;gap:6px;padding:0 10px 8px}
-.fanta-input{flex:1;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:.82rem;color:var(--txt);outline:none}
-.fanta-input:focus{border-color:var(--blue)}
-.fanta-add-btn{width:30px;height:30px;border-radius:6px;background:var(--blue);color:#fff;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fanta-input{flex:1;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:.82rem;color:var(--txt);outline:none;transition:border-color .15s}
+.fanta-input:focus{border-color:var(--green)}
+.fanta-add-btn{width:30px;height:30px;border-radius:6px;background:var(--green);color:#fff;font-size:1.2rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s}
+.fanta-add-btn:hover{background:#15803d}
 .fanta-players{padding:0 10px}
 .fanta-player{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:5px;font-size:.82rem;font-weight:500;transition:background .1s}
 .fanta-player:hover{background:var(--bg)}
