@@ -226,6 +226,11 @@ const S = {
   timer:null, prevScores:{},
 };
 
+/* ── FANTA SQUAD ──────────────────────────────────────────── */
+let FANTA = JSON.parse(localStorage.getItem('sl_fanta')||'[]');
+function saveFanta(){localStorage.setItem('sl_fanta',JSON.stringify(FANTA));}
+function inFanta(name){const n=(name||'').toLowerCase().trim();return FANTA.some(p=>{const q=p.toLowerCase().trim();return q===n||n.includes(q)||q.includes(n);});}
+
 /* ── UTILS ────────────────────────────────────────────────── */
 const $id = id => document.getElementById(id);
 const qsa = (s, c=document) => [...c.querySelectorAll(s)];
@@ -304,6 +309,51 @@ function renderSidebar(){
     });
     sec.appendChild(items); nav.appendChild(sec);
   });
+
+  // Fanta squad section (not a cat-section, unaffected by search filter)
+  const fantaSec=document.createElement('div');
+  fantaSec.className='fanta-squad-sec';
+  fantaSec.id='fanta-squad-sec';
+  function renderFantaSection(){
+    fantaSec.innerHTML=`
+      <div class="fanta-squad-header">
+        <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt3)">Rosa Fantacalcio</span>
+        <span class="fanta-cnt">${FANTA.length}</span>
+      </div>
+      <div class="fanta-add-row">
+        <input class="fanta-input" id="fanta-input" type="text" placeholder="Nome giocatore..." autocomplete="off">
+        <button class="fanta-add-btn" id="fanta-add-btn" title="Aggiungi">+</button>
+      </div>
+      <div class="fanta-players" id="fanta-players-list">
+        ${FANTA.length===0?`<div class="fanta-empty">Nessun giocatore aggiunto</div>`:
+          FANTA.map((p,i)=>`<div class="fanta-player" data-fi="${i}">
+            <span>${esc(p)}</span>
+            <button class="fanta-remove" data-fi="${i}" title="Rimuovi">×</button>
+          </div>`).join('')}
+      </div>`;
+    const inp=fantaSec.querySelector('#fanta-input');
+    const addBtn=fantaSec.querySelector('#fanta-add-btn');
+    function addPlayer(){
+      const v=(inp.value||'').trim();
+      if(!v) return;
+      if(!FANTA.some(p=>p.toLowerCase()===v.toLowerCase())){
+        FANTA.push(v); saveFanta();
+      }
+      inp.value='';
+      renderFantaSection();
+    }
+    addBtn.onclick=addPlayer;
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPlayer();}});
+    fantaSec.querySelectorAll('.fanta-remove').forEach(btn=>{
+      btn.onclick=e=>{
+        e.stopPropagation();
+        const idx=parseInt(btn.dataset.fi);
+        FANTA.splice(idx,1); saveFanta(); renderFantaSection();
+      };
+    });
+  }
+  renderFantaSection();
+  nav.appendChild(fantaSec);
 
   const si=$id('league-search');
   si.oninput=()=>{
@@ -423,16 +473,21 @@ function matchCard(ev){
 
 function matchGoals(comp){
   const details=comp?.details||[];
-  const goals=details.filter(d=>d.type?.text==='Goal'||d.type?.text==='PenaltyScored'||d.type?.text==='OwnGoal');
+  const goals=details.filter(d=>{
+    const txt=(d.type?.text||'').toLowerCase();
+    return txt.includes('goal')||txt==='penaltyscored'||txt==='owngoal';
+  });
   if(!goals.length) return '';
   return goals.map(g=>{
     const min=g.clock?.displayValue||'';
     const scorer=g.athletesInvolved?.[0]?.displayName||'';
     const assist=g.athletesInvolved?.[1]?.displayName||'';
-    const isOwn=g.type?.text==='OwnGoal';
-    return `<span class="mg-item${isOwn?' mg-own':''}">
+    const isOwn=(g.type?.text||'').toLowerCase()==='owngoal';
+    const isFanta=inFanta(scorer);
+    return `<span class="mg-item${isOwn?' mg-own':''}${isFanta?' mg-fanta':''}">
       ${min?`<span class="mg-min">${min}'</span>`:''}
       <span class="mg-scorer">${esc(scorer)}${isOwn?' (Aut.)':''}</span>
+      ${isFanta?`<span class="mg-fanta-badge">TUO</span>`:''}
       ${assist?`<span class="mg-assist">${t('ass')}: ${esc(assist)}</span>`:''}
     </span>`;
   }).join('');
@@ -466,6 +521,17 @@ function checkGoals(events){
 }
 
 /* ── STANDINGS ────────────────────────────────────────────── */
+function extractEntries(data){
+  if(data.standings?.entries?.length) return data.standings.entries;
+  if(data.children?.length){
+    const flat=data.children.flatMap(c=>c.standings?.entries||[]);
+    if(flat.length) return flat;
+    const deep=data.children.flatMap(c=>(c.children||[]).flatMap(cc=>cc.standings?.entries||[]));
+    if(deep.length) return deep;
+  }
+  return [];
+}
+
 async function loadStandings(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
@@ -473,9 +539,7 @@ async function loadStandings(){
     const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/standings`);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
-    let entries=data.standings?.entries
-      ||data.children?.[0]?.standings?.entries
-      ||data.standings?.[0]?.entries||[];
+    const entries=extractEntries(data);
     if(!entries.length){el.innerHTML=`<div class="empty-state"><p>${t('classifica_nd')}</p></div>`;return;}
     const rows=entries.map((entry,i)=>{
       const team=entry.team||{};
@@ -673,7 +737,6 @@ async function openModal(eventId){
   bd.classList.add('open');
   body.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   banner.innerHTML='';
-  qsa('.modal-tab').forEach(t2=>t2.classList.toggle('active',t2.dataset.mtab==='events'));
   try{
     const data=await (await fetch(`${ESPN}/${espnSport()}/${espnPath()}/summary?event=${eventId}`)).json();
     const hComp=data.header?.competitions?.[0];
@@ -703,7 +766,10 @@ async function openModal(eventId){
       }
     }
     bd._data=data;
-    renderMTab('events',data);
+    const matchState=hComp?.status?.type?.state;
+    const defaultTab=matchState==='pre'?'preview':'events';
+    qsa('.modal-tab').forEach(t2=>t2.classList.toggle('active',t2.dataset.mtab===defaultTab));
+    renderMTab(defaultTab,data);
     qsa('.modal-tab').forEach(tab=>{
       tab.onclick=()=>{qsa('.modal-tab').forEach(t2=>t2.classList.toggle('active',t2===tab));renderMTab(tab.dataset.mtab,bd._data);};
     });
@@ -712,7 +778,8 @@ async function openModal(eventId){
 
 function renderMTab(tab,data){
   const body=$id('modal-body');
-  if(tab==='events') renderMEvents(data,body);
+  if(tab==='preview') renderMPreview(data,body);
+  else if(tab==='events') renderMEvents(data,body);
   else if(tab==='lineups') renderMLineups(data,body);
   else if(tab==='stats') renderMStats(data,body);
   else if(tab==='tv'){
@@ -722,18 +789,27 @@ function renderMTab(tab,data){
   }
 }
 
+function evtInfo(type){
+  const lc=(type||'').toLowerCase().replace(/[\s\-_]/g,'');
+  if(lc==='owngoal'||lc==='autogol') return {label:t('aut'),cls:'goal'};
+  if(lc.includes('goal')||lc==='penaltyscored') return {label:t('gol'),cls:'goal'};
+  if(lc.includes('yellowred')||lc.includes('secondyellow')) return {label:t('esp'),cls:'red'};
+  if(lc.includes('yellow')||lc==='booking') return {label:t('amm'),cls:'yellow'};
+  if(lc.includes('red')) return {label:t('esp'),cls:'red'};
+  if(lc.includes('sub')||lc==='substitution') return {label:t('cam'),cls:'sub'};
+  if(lc.includes('penaltymissed')) return {label:t('rig')+'X',cls:'pen'};
+  if(lc.includes('penalty')&&!lc.includes('missed')) return {label:t('rig'),cls:'pen'};
+  if(lc.includes('var')) return {label:'VAR',cls:'other'};
+  return {label:(type||'').substring(0,5)||'?',cls:'other'};
+}
+
 function renderMEvents(data,body){
   const details=data.header?.competitions?.[0]?.details||[];
   if(!details.length){body.innerHTML=`<div class="empty-state"><p>${t('nessun_evento')}</p></div>`;return;}
   const sorted=[...details].sort((a,b)=>(parseInt(a.clock?.displayValue)||0)-(parseInt(b.clock?.displayValue)||0));
-  const EVT={'Goal':{label:t('gol'),cls:'goal'},'PenaltyScored':{label:t('rig'),cls:'goal'},
-    'OwnGoal':{label:t('aut'),cls:'goal'},'YellowCard':{label:t('amm'),cls:'yellow'},
-    'RedCard':{label:t('esp'),cls:'red'},'YellowRedCard':{label:t('esp'),cls:'red'},
-    'Substitution':{label:t('cam'),cls:'sub'},'PenaltyMissed':{label:t('rig')+'X',cls:'pen'},
-    'VAR':{label:'VAR',cls:'other'}};
   body.innerHTML=`<div class="events-list">${sorted.map(ev=>{
-    const type=ev.type?.text||'';
-    const info=EVT[type]||{label:type.substring(0,4).toUpperCase()||'?',cls:'other'};
+    const type=ev.type?.text||ev.type?.name||'';
+    const info=evtInfo(type);
     const min=ev.clock?.displayValue?`${ev.clock.displayValue}'`:'';
     const player=ev.athletesInvolved?.[0]?.displayName||'';
     const assist=ev.athletesInvolved?.[1]?.displayName||'';
@@ -754,9 +830,12 @@ function renderMLineups(data,body){
     const a=p.athlete||p;
     const photo=`https://a.espncdn.com/i/headshots/soccer/players/full/${a.id}.png`;
     const num=a.jersey||p.jersey||'',pos=a.position?.abbreviation||p.position?.abbreviation||'';
-    return `<div class="lu-player"><span class="lu-num">${num}</span>
+    const name=a.displayName||a.fullName||'';
+    const isFanta=inFanta(name);
+    return `<div class="lu-player${isFanta?' lu-fanta':''}"><span class="lu-num">${num}</span>
       <img src="${photo}" class="lu-photo" onerror="this.className='lu-photo-ph';this.removeAttribute('src')">
-      <span class="lu-name">${esc(a.displayName||a.fullName||'')}</span>
+      <span class="lu-name">${esc(name)}</span>
+      ${isFanta?`<span class="lu-fc">TUO</span>`:''}
       ${pos?`<span class="lu-pos">${pos}</span>`:''}</div>`;
   };
   body.innerHTML=`<div class="lineup-split">${rosters.slice(0,2).map(tr=>{
@@ -792,6 +871,47 @@ function renderMStats(data,body){
   body.innerHTML=`<div style="display:flex;justify-content:space-between;margin-bottom:10px;font-size:.8rem;font-weight:700">
     <span>${esc(hT.team?.shortDisplayName||'Casa')}</span><span>${esc(aT.team?.shortDisplayName||'Ospite')}</span>
   </div><div class="stat-list">${rows||`<div class="empty-state"><p>${t('statistiche_nd')}</p></div>`}</div>`;
+}
+
+function renderMPreview(data,body){
+  const venue=data.gameInfo?.venue;
+  const predictor=data.predictor;
+  const tv=TV_MAP[S.compId]||'';
+  let html='<div class="m-section">';
+  if(venue?.fullName||venue?.address?.city){
+    html+=`<div class="m-section-title">Stadio</div>
+      <div class="prev-venue">
+        ${esc(venue.fullName||'')}${venue.address?.city?`<span style="color:var(--txt3);font-weight:400;margin-left:6px;font-size:.8rem">– ${esc(venue.address.city)}</span>`:''}
+      </div>`;
+  }
+  if(predictor?.homeTeam||predictor?.awayTeam){
+    const hp=parseFloat(predictor.homeTeam?.gameProjection||predictor.homeTeam?.chanceOfWinning||0);
+    const ap=parseFloat(predictor.awayTeam?.gameProjection||predictor.awayTeam?.chanceOfWinning||0);
+    const dp=Math.max(0,100-hp-ap);
+    html+=`<div class="m-section-title" style="margin-top:14px">Probabilità vittoria</div>
+      <div class="prev-prob">
+        <div class="prev-prob-bar">
+          <div class="prev-prob-h" style="width:${hp.toFixed(1)}%"></div>
+          <div class="prev-prob-d" style="width:${dp.toFixed(1)}%"></div>
+          <div class="prev-prob-a" style="width:${ap.toFixed(1)}%"></div>
+        </div>
+        <div class="prev-prob-labels">
+          <span>${hp.toFixed(0)}%</span>
+          <span style="color:var(--txt3)">${dp.toFixed(0)}%</span>
+          <span>${ap.toFixed(0)}%</span>
+        </div>
+      </div>`;
+  }
+  if(tv){
+    html+=`<div class="m-section-title" style="margin-top:14px">${t('disponibile_su')}</div>
+      <div class="tv-list">${tv.split('·').map(s=>`<span class="tv-badge">${esc(s.trim())}</span>`).join('')}</div>`;
+  }
+  html+='</div>';
+  if(!venue?.fullName&&!predictor&&!tv){
+    body.innerHTML=`<div class="empty-state"><p>Anteprima non disponibile</p></div>`;
+    return;
+  }
+  body.innerHTML=html;
 }
 
 /* ── GLOBAL SEARCH ────────────────────────────────────────── */
