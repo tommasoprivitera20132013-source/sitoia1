@@ -247,6 +247,11 @@ function compInfo(id){
   for(const cat of CATS){const c=(cat.comps||[]).find(x=>x.id===id);if(c)return{name:c.name,sport:cat.sport||'football',et:c.et||cat.et||'soccer'};}
   return{name:id,sport:'football',et:'soccer'};
 }
+// Returns the correct ESPN league path for URL building
+// Football uses compId (ita.1, eng.1, UEFA.CHAMPIONS...)
+// Basketball uses et (nba, mens-euroleague...)
+function espnPath(){return S.sport==='basketball'?S.et:S.compId;}
+function espnSport(){return S.sport==='basketball'?'basketball':'soccer';}
 
 /* ── LANGUAGE ─────────────────────────────────────────────── */
 function setLang(l){LANG=l;localStorage.setItem('sl_lang',l);applyLangToDOM();renderSidebar();}
@@ -349,8 +354,7 @@ async function loadScores(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const sp=S.sport==='basketball'?'basketball':'soccer';
-    const url=`${ESPN}/${sp}/${S.et}/scoreboard`;
+    const url=`${ESPN}/${espnSport()}/${espnPath()}/scoreboard`;
     const res=await fetch(url);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
@@ -466,8 +470,7 @@ async function loadStandings(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const sp=S.sport==='basketball'?'basketball':'soccer';
-    const res=await fetch(`${ESPN}/${sp}/${S.et}/standings`);
+    const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/standings`);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
     let entries=data.standings?.entries
@@ -515,8 +518,7 @@ async function loadScorers(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const sp=S.sport==='basketball'?'basketball':'soccer';
-    const res=await fetch(`${ESPN}/${sp}/${S.et}/leaders`);
+    const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/leaders`);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
     const cats=data.leaders||[];
@@ -613,39 +615,41 @@ async function loadNews(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
 
-  // Try ESPN news first (CORS-enabled, reliable)
   let items=[];
-  try{
-    const espnLeagues=['soccer/ita.1','soccer/UEFA.CHAMPIONS','soccer/eng.1','soccer/esp.1','soccer/ger.1'];
-    const espnNews=await Promise.all(espnLeagues.map(l=>
-      fetch(`${ESPN}/${l}/news?limit=5`)
-        .then(r=>r.json())
-        .then(d=>(d.articles||[]).map(a=>({
-          title:a.headline||a.title||'',
-          link:a.links?.web?.href||a.links?.mobile?.href||'#',
-          thumbnail:a.images?.[0]?.url||'',
-          pubDate:a.published||a.lastModified||'',
-          source:a.categories?.[0]?.description||'ESPN',
-        }))).catch(()=>[])
-    ));
-    items=espnNews.flat().filter(a=>a.title).sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-  }catch{}
 
-  // Fallback: RSS2JSON for Italian sources
-  if(items.length<5){
+  // Italian language: prioritize Italian RSS sources (Gazzetta, Corriere Sport, etc.)
+  if(LANG==='it'){
     try{
       const feeds=await Promise.all(NEWS_FEEDS.map(f=>
-        fetch(`${RSS2J}${encodeURIComponent(f.url)}&count=8&api_key=`)
+        fetch(`${RSS2J}${encodeURIComponent(f.url)}&count=10`)
           .then(r=>r.json()).then(d=>(d.status==='ok'?(d.items||[]):[]).map(i=>({
             title:i.title||'', link:i.link||'#',
             thumbnail:i.thumbnail||i.enclosure?.url||'',
             pubDate:i.pubDate||'', source:f.name,
           }))).catch(()=>[])
       ));
-      const rssItems=feeds.flat().filter(a=>a.title).sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
-      // Merge deduplicating by title
+      items=feeds.flat().filter(a=>a.title).sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
+    }catch{}
+  }
+
+  // For non-Italian or if Italian RSS had no results: use ESPN news
+  if(items.length<5){
+    try{
+      const espnLeagues=['soccer/ita.1','soccer/UEFA.CHAMPIONS','soccer/eng.1','soccer/esp.1','soccer/ger.1'];
+      const espnNews=await Promise.all(espnLeagues.map(l=>
+        fetch(`${ESPN}/${l}/news?limit=5`)
+          .then(r=>r.json())
+          .then(d=>(d.articles||[]).map(a=>({
+            title:a.headline||a.title||'',
+            link:a.links?.web?.href||a.links?.mobile?.href||'#',
+            thumbnail:a.images?.[0]?.url||'',
+            pubDate:a.published||a.lastModified||'',
+            source:a.categories?.[0]?.description||'ESPN',
+          }))).catch(()=>[])
+      ));
+      const espnItems=espnNews.flat().filter(a=>a.title).sort((a,b)=>new Date(b.pubDate)-new Date(a.pubDate));
       const seen=new Set(items.map(i=>i.title));
-      rssItems.forEach(i=>{if(!seen.has(i.title)){items.push(i);seen.add(i.title);}});
+      espnItems.forEach(i=>{if(!seen.has(i.title)){items.push(i);seen.add(i.title);}});
     }catch{}
   }
 
@@ -671,8 +675,7 @@ async function openModal(eventId){
   banner.innerHTML='';
   qsa('.modal-tab').forEach(t2=>t2.classList.toggle('active',t2.dataset.mtab==='events'));
   try{
-    const sp=S.sport==='basketball'?'basketball':'soccer';
-    const data=await (await fetch(`${ESPN}/${sp}/${S.et}/summary?event=${eventId}`)).json();
+    const data=await (await fetch(`${ESPN}/${espnSport()}/${espnPath()}/summary?event=${eventId}`)).json();
     const hComp=data.header?.competitions?.[0];
     if(hComp){
       const home=hComp.competitors?.find(c=>c.homeAway==='home');
