@@ -514,7 +514,7 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
 .mr-name.bold{font-weight:700}
 
 .mr-score{display:flex;align-items:center;justify-content:center;gap:3px;flex-shrink:0}
-.mr-snum{font-size:1.15rem;font-weight:800;min-width:20px;text-align:center}
+.mr-snum{font-size:1.25rem;font-weight:900;min-width:20px;text-align:center}
 .mr-ssep{font-size:.85rem;color:var(--txt3)}
 
 .mr-extra{display:flex;flex-direction:column;align-items:flex-end;gap:2px;overflow:hidden}
@@ -840,4 +840,39 @@ tbody tr:hover td{background:rgba(29,78,216,.025)}
 
 /* ── Cat section (sidebar) ────────────────────────────────── */
 .cat-section{display:flex;flex-direction:column}
+
+/* ── Fanta squad section ── */
+.fanta-squad-sec{border-top:1px solid var(--border);padding-bottom:8px}
+.fanta-squad-header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px}
+.fanta-cnt{font-size:.7rem;font-weight:700;background:var(--blue);color:#fff;padding:2px 7px;border-radius:10px}
+.fanta-add-row{display:flex;gap:6px;padding:0 10px 8px}
+.fanta-input{flex:1;padding:7px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);font-family:inherit;font-size:.82rem;color:var(--txt);outline:none}
+.fanta-input:focus{border-color:var(--blue)}
+.fanta-add-btn{width:30px;height:30px;border-radius:6px;background:var(--blue);color:#fff;font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.fanta-players{padding:0 10px}
+.fanta-player{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;border-radius:5px;font-size:.82rem;font-weight:500;transition:background .1s}
+.fanta-player:hover{background:var(--bg)}
+.fanta-remove{font-size:.85rem;color:var(--txt3);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .1s}
+.fanta-remove:hover{background:rgba(220,38,38,.1);color:var(--live)}
+.fanta-empty{font-size:.78rem;color:var(--txt3);padding:6px 8px;font-style:italic}
+
+/* ── Fanta highlight in goals bar ── */
+.mg-fanta .mg-scorer{color:var(--green);font-weight:800}
+.mg-fanta-badge{font-size:.58rem;font-weight:800;background:var(--green);color:#fff;padding:1px 4px;border-radius:3px;letter-spacing:.3px;flex-shrink:0}
+
+/* ── Fanta highlight in lineup ── */
+.lu-fanta .lu-name{color:var(--green);font-weight:700}
+
+/* ── Match preview tab ── */
+.prev-venue{font-size:.9rem;font-weight:600;padding:10px 12px;background:var(--bg);border-radius:8px}
+.prev-prob{margin-top:6px}
+.prev-prob-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;gap:1px;margin-bottom:10px}
+.prev-prob-h{background:var(--blue);transition:width .5s ease}
+.prev-prob-d{background:var(--border);transition:width .5s ease}
+.prev-prob-a{background:#ef4444;flex:1;transition:width .5s ease}
+.prev-prob-labels{display:flex;justify-content:space-between;font-size:.85rem;font-weight:600;text-align:center}
+.prev-note{font-size:.84rem;color:var(--txt2);padding:8px 0;border-bottom:1px solid var(--border)}
+.prev-note:last-child{border-bottom:none}
+
+/* ── Score bigger in match card ── (see .mr-snum above, updated in-place) */
 
