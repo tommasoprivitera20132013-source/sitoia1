@@ -3,25 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0d1117">
+  <meta name="theme-color" content="#1a56db">
   <meta name="description" content="Risultati sportivi in tempo reale - Calcio, Basket, Formula 1">
   <title>SportLive – Risultati in Tempo Reale</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="SportLive">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- HEADER -->
-  <header class="header">
+  <!-- ===== HEADER ===== -->
+  <header class="header" id="header">
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+
     <div class="logo">
-      <span class="logo-bolt">⚡</span>
-      <span class="logo-name">Sport<span class="logo-live">Live</span></span>
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">Sport<strong>Live</strong></span>
     </div>
 
     <nav class="sport-tabs" id="sport-tabs">
@@ -36,30 +35,55 @@
       </button>
     </nav>
 
-    <div class="header-meta">
-      <div class="live-pill">
+    <div class="header-right">
+      <button class="notif-btn" id="notif-btn" title="Attiva notifiche">🔔</button>
+      <div class="live-badge">
         <span class="live-dot"></span>LIVE
       </div>
-      <span class="refresh-label" id="refresh-label">Aggiorna in 30s</span>
+      <span class="refresh-label" id="refresh-label">15s</span>
     </div>
   </header>
 
-  <!-- MOBILE LEAGUE BAR -->
-  <div class="mobile-leagues" id="mobile-leagues"></div>
+  <!-- ===== MOBILE SPORT TABS ===== -->
+  <div class="mobile-sport-bar" id="mobile-sport-bar">
+    <button class="msport-tab active" data-sport="football">⚽ Calcio</button>
+    <button class="msport-tab" data-sport="basketball">🏀 Basket</button>
+    <button class="msport-tab" data-sport="f1">🏎️ Formula 1</button>
+    <button class="msport-tab" data-sport="news">📰 News</button>
+  </div>
 
-  <!-- LAYOUT -->
-  <div class="layout">
+  <!-- ===== LAYOUT ===== -->
+  <div class="layout" id="layout">
+
+    <!-- SIDEBAR OVERLAY (mobile) -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-title">Competizioni</div>
-      <nav class="league-nav" id="league-nav"></nav>
+      <div class="sidebar-inner">
+        <div class="sidebar-search-wrap">
+          <input type="search" class="sidebar-search" id="sidebar-search" placeholder="Cerca competizione…" autocomplete="off">
+        </div>
+
+        <div class="sidebar-section" id="fav-section" style="display:none">
+          <div class="sidebar-section-header">
+            <span>★ Preferiti</span>
+          </div>
+          <div class="league-nav" id="fav-nav"></div>
+        </div>
+
+        <div id="league-sections"></div>
+      </div>
     </aside>
 
     <!-- MAIN -->
-    <main class="main">
+    <main class="main" id="main">
+
+      <!-- Content header -->
       <div class="content-header">
-        <h2 class="page-title" id="page-title">Champions League 🏆</h2>
+        <div class="content-header-left">
+          <h2 class="page-title" id="page-title">Champions League</h2>
+        </div>
         <div class="view-tabs" id="view-tabs">
           <button class="view-tab active" data-view="scores">Risultati</button>
           <button class="view-tab" data-view="standings">Classifica</button>
@@ -67,8 +91,9 @@
         </div>
       </div>
 
+      <!-- Match content -->
       <div id="content">
-        <div class="loading">
+        <div class="loading-state">
           <div class="spinner"></div>
           <p>Caricamento in corso…</p>
         </div>
@@ -76,17 +101,31 @@
     </main>
   </div>
 
-  <!-- FOOTER -->
+  <!-- ===== FOOTER ===== -->
   <footer class="footer">
-    <span>Dati: ESPN · Jolpica F1</span>
+    <span>Dati: ESPN API · Jolpica F1</span>
     <span id="updated-at">—</span>
   </footer>
 
+  <!-- ===== MATCH DETAIL MODAL ===== -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal" id="match-modal">
+      <div class="modal-header">
+        <div class="modal-match-info" id="modal-match-info"></div>
+        <button class="modal-close" id="modal-close">✕</button>
+      </div>
+      <div class="modal-tabs">
+        <button class="modal-tab active" data-mtab="events">Eventi</button>
+        <button class="modal-tab" data-mtab="lineups">Formazioni</button>
+        <button class="modal-tab" data-mtab="stats">Statistiche</button>
+        <button class="modal-tab" data-mtab="tv">Dove vederla</button>
+      </div>
+      <div class="modal-body" id="modal-body">
+        <div class="loading-state"><div class="spinner"></div><p>Caricamento…</p></div>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('./sw.js');
-    }
-  </script>
 </body>
 </html>
