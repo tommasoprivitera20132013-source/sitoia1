@@ -3,15 +3,78 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1a73e8">
+  <meta name="theme-color" content="#1d4ed8">
   <meta name="description" content="Risultati sportivi in tempo reale - Calcio, Basket, Formula 1">
-  <title>SportLive – Risultati in Tempo Reale</title>
+  <title>SportLive - Risultati in Tempo Reale</title>
   <link rel="manifest" href="manifest.json">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+
+  <!-- ONBOARDING OVERLAY -->
+  <div class="onboarding-overlay" id="onboarding-overlay">
+    <div class="onboarding-container">
+      <div class="onboarding-header">
+        <span class="ob-logo">Sport<span class="ob-logo-accent">Live</span></span>
+        <div class="ob-steps">
+          <span class="ob-step-dot active" data-step="1"></span>
+          <span class="ob-step-dot" data-step="2"></span>
+        </div>
+      </div>
+
+      <!-- Step 1: Competitions -->
+      <div class="ob-step-panel active" id="ob-step-1">
+        <h2 class="ob-title">Seleziona le tue competizioni preferite</h2>
+        <p class="ob-subtitle">Scegli i campionati che vuoi seguire. Potrai modificarli in seguito.</p>
+        <div class="ob-comp-grid" id="ob-comp-grid"></div>
+        <div class="ob-actions">
+          <button class="ob-btn ob-btn-primary" id="ob-next">Avanti</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Teams -->
+      <div class="ob-step-panel" id="ob-step-2">
+        <h2 class="ob-title">Cerca le tue squadre del cuore</h2>
+        <p class="ob-subtitle">Aggiungi le squadre che vuoi seguire per ricevere aggiornamenti personalizzati.</p>
+        <div class="ob-search-wrap">
+          <input type="search" id="ob-team-search" placeholder="Cerca una squadra..." autocomplete="off">
+        </div>
+        <div class="ob-team-results" id="ob-team-results"></div>
+        <div class="ob-selected-teams" id="ob-selected-teams"></div>
+        <div class="ob-actions">
+          <button class="ob-btn ob-btn-secondary" id="ob-back">Indietro</button>
+          <button class="ob-btn ob-btn-primary" id="ob-finish">Inizia</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEARCH OVERLAY -->
+  <div class="search-overlay" id="search-overlay">
+    <div class="search-overlay-inner">
+      <div class="search-bar-full">
+        <span class="search-icon-lg">CERCA</span>
+        <input type="search" id="global-search-input" placeholder="Cerca squadra, competizione..." autocomplete="off">
+        <button class="search-close-btn" id="search-close-btn">Chiudi</button>
+      </div>
+      <div class="search-results" id="search-results"></div>
+    </div>
+  </div>
+
+  <!-- TEAM VIEW OVERLAY -->
+  <div class="team-view-overlay" id="team-view-overlay">
+    <div class="team-view-container">
+      <div class="team-view-header">
+        <button class="tv-back-btn" id="tv-back-btn">Indietro</button>
+        <h3 class="tv-title" id="tv-title">Dettaglio Squadra</h3>
+      </div>
+      <div class="team-view-body" id="team-view-body">
+        <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
+      </div>
+    </div>
+  </div>
 
   <!-- HEADER -->
   <header class="header" id="header">
@@ -20,22 +83,21 @@
     </button>
 
     <div class="logo">
-      <span class="logo-icon">⚽</span>
       <span class="logo-name">Sport<span class="logo-live">Live</span></span>
     </div>
 
     <nav class="sport-tabs" id="sport-tabs">
       <button class="sport-tab active" data-sport="football">
-        <span class="tab-icon">⚽</span><span class="tab-label">Calcio</span>
+        <span class="tab-label">Calcio</span>
       </button>
       <button class="sport-tab" data-sport="basketball">
-        <span class="tab-icon">🏀</span><span class="tab-label">Basket</span>
+        <span class="tab-label">Basket</span>
       </button>
       <button class="sport-tab" data-sport="f1">
-        <span class="tab-icon">🏎️</span><span class="tab-label">Formula 1</span>
+        <span class="tab-label">Formula 1</span>
       </button>
       <button class="sport-tab" data-sport="news">
-        <span class="tab-icon">📰</span><span class="tab-label">Notizie</span>
+        <span class="tab-label">Notizie</span>
       </button>
     </nav>
 
@@ -43,17 +105,17 @@
       <div class="live-pill" id="live-pill">
         <span class="live-dot"></span><span>LIVE</span>
       </div>
-      <button class="notif-btn" id="notif-btn" title="Notifiche">🔔</button>
-      <span class="refresh-label" id="refresh-label">15s</span>
+      <button class="search-btn" id="search-btn" title="Cerca">Cerca</button>
+      <button class="settings-btn" id="settings-btn" title="Impostazioni">Opzioni</button>
     </div>
   </header>
 
   <!-- MOBILE SPORT BAR -->
   <div class="mobile-sport-bar" id="mobile-sport-bar">
-    <button class="msport-btn active" data-sport="football">⚽ Calcio</button>
-    <button class="msport-btn" data-sport="basketball">🏀 Basket</button>
-    <button class="msport-btn" data-sport="f1">🏎️ F1</button>
-    <button class="msport-btn" data-sport="news">📰 Notizie</button>
+    <button class="msport-btn active" data-sport="football">Calcio</button>
+    <button class="msport-btn" data-sport="basketball">Basket</button>
+    <button class="msport-btn" data-sport="f1">F1</button>
+    <button class="msport-btn" data-sport="news">Notizie</button>
   </div>
 
   <!-- SIDEBAR OVERLAY (mobile) -->
@@ -66,12 +128,67 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-title">Competizioni</div>
-        <button class="sidebar-close" id="sidebar-close">✕</button>
+        <button class="sidebar-close" id="sidebar-close">X</button>
       </div>
       <div class="sidebar-search">
-        <input type="search" id="league-search" placeholder="Cerca competizione…" autocomplete="off">
+        <input type="search" id="league-search" placeholder="Cerca competizione..." autocomplete="off">
       </div>
       <nav class="league-nav" id="league-nav"></nav>
+
+      <!-- Fantacalcio Section -->
+      <div class="fc-section" id="fc-section">
+        <div class="fc-header">
+          <span class="fc-title">FANTACALCIO</span>
+        </div>
+        <div class="fc-platforms">
+
+          <a class="fc-platform-card" href="https://www.fantacalcio.it" target="_blank" rel="noopener noreferrer">
+            <div class="fc-platform-info">
+              <span class="fc-platform-name">Fantacalcio.it</span>
+              <span class="fc-platform-desc">La piattaforma storica italiana</span>
+            </div>
+            <span class="fc-platform-arrow">→</span>
+          </a>
+
+          <a class="fc-platform-card" href="https://leghe.fantacalcio.it" target="_blank" rel="noopener noreferrer">
+            <div class="fc-platform-info">
+              <span class="fc-platform-name">Leghe Fantacalcio</span>
+              <span class="fc-platform-desc">Gestisci la tua lega</span>
+            </div>
+            <span class="fc-platform-arrow">→</span>
+          </a>
+
+          <a class="fc-platform-card" href="https://fantasy.serieA.it" target="_blank" rel="noopener noreferrer">
+            <div class="fc-platform-info">
+              <span class="fc-platform-name">Fanta Serie A</span>
+              <span class="fc-platform-desc">App ufficiale Lega Serie A</span>
+            </div>
+            <span class="fc-platform-arrow">→</span>
+          </a>
+
+          <a class="fc-platform-card" href="https://www.fanta.it" target="_blank" rel="noopener noreferrer">
+            <div class="fc-platform-info">
+              <span class="fc-platform-name">Fanta.it</span>
+              <span class="fc-platform-desc">Fantacalcio online</span>
+            </div>
+            <span class="fc-platform-arrow">→</span>
+          </a>
+
+          <a class="fc-platform-card" href="https://www.myfantasyteam.it" target="_blank" rel="noopener noreferrer">
+            <div class="fc-platform-info">
+              <span class="fc-platform-name">MyFantasyTeam</span>
+              <span class="fc-platform-desc">Crea il tuo fantasy team</span>
+            </div>
+            <span class="fc-platform-arrow">→</span>
+          </a>
+
+        </div>
+      </div>
+
+      <!-- Settings -->
+      <div class="sidebar-footer">
+        <button class="reset-prefs-btn" id="reset-prefs-btn">Reimposta preferenze</button>
+      </div>
     </aside>
 
     <!-- MAIN -->
@@ -79,7 +196,7 @@
       <div class="content-header" id="content-header">
         <div class="content-header-left">
           <h2 class="page-title" id="page-title">Champions League</h2>
-          <button class="fav-btn" id="fav-btn" title="Aggiungi ai preferiti">☆</button>
+          <button class="fav-btn" id="fav-btn" title="Aggiungi ai preferiti">Pref.</button>
         </div>
         <div class="view-tabs" id="view-tabs">
           <button class="view-tab active" data-view="scores">Risultati</button>
@@ -91,7 +208,7 @@
       <div id="content">
         <div class="loading-state">
           <div class="spinner"></div>
-          <p>Caricamento…</p>
+          <p>Caricamento...</p>
         </div>
       </div>
     </main>
@@ -99,8 +216,8 @@
 
   <!-- FOOTER -->
   <footer class="footer">
-    <span>Dati: ESPN · Jolpica F1</span>
-    <span id="updated-at">—</span>
+    <span>Dati: ESPN / Jolpica F1 / RSS2JSON</span>
+    <span id="updated-at">--</span>
   </footer>
 
   <!-- MATCH DETAIL MODAL -->
@@ -108,17 +225,17 @@
     <div class="modal" id="match-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-title">Dettaglio Partita</h3>
-        <button class="modal-close" id="modal-close" aria-label="Chiudi">✕</button>
+        <button class="modal-close" id="modal-close" aria-label="Chiudi">X</button>
       </div>
       <div class="modal-score-banner" id="modal-score-banner"></div>
       <div class="modal-tabs">
-        <button class="modal-tab active" data-mtab="events">📋 Cronaca</button>
-        <button class="modal-tab" data-mtab="lineups">👥 Formazioni</button>
-        <button class="modal-tab" data-mtab="stats">📊 Statistiche</button>
-        <button class="modal-tab" data-mtab="tv">📺 TV</button>
+        <button class="modal-tab active" data-mtab="events">Cronaca</button>
+        <button class="modal-tab" data-mtab="lineups">Formazioni</button>
+        <button class="modal-tab" data-mtab="stats">Statistiche</button>
+        <button class="modal-tab" data-mtab="tv">TV</button>
       </div>
       <div class="modal-body" id="modal-body">
-        <div class="loading-state"><div class="spinner"></div><p>Caricamento…</p></div>
+        <div class="loading-state"><div class="spinner"></div><p>Caricamento...</p></div>
       </div>
     </div>
   </div>
