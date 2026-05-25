@@ -521,7 +521,6 @@ function setLang(l){LANG=l;localStorage.setItem('sl_lang',l);applyLangToDOM();re
 function applyLangToDOM(){
   const tabMap={football:'calcio',basketball:'basket',f1:'f1',news:'notizie'};
   qsa('.sport-tab').forEach(b=>{const lbl=b.querySelector('.tab-label');if(lbl)lbl.textContent=t(tabMap[b.dataset.sport]||b.dataset.sport);});
-  qsa('.msport-btn').forEach(b=>{b.textContent=t(tabMap[b.dataset.sport]||b.dataset.sport);});
   const vtMap={scores:'risultati',standings:'classifica',scorers:'marcatori'};
   qsa('.view-tab').forEach(b=>{b.textContent=t(vtMap[b.dataset.view]||b.dataset.view);});
   const ls=$id('league-search');if(ls)ls.placeholder=t('cerca_comp');
@@ -533,6 +532,26 @@ function applyLangToDOM(){
 /* ── SIDEBAR ──────────────────────────────────────────────── */
 function renderSidebar(){
   const nav=$id('league-nav'); nav.innerHTML='';
+
+  // Sport switcher at top
+  const sportWrap=document.createElement('div');
+  sportWrap.className='sidebar-sports';
+  const sportList=[
+    {key:'football',icon:'⚽',label:'Calcio'},
+    {key:'basketball',icon:'🏀',label:'Basket'},
+    {key:'f1',icon:'🏎️',label:'F1'},
+    {key:'news',icon:'📰',label:'Notizie'},
+    {key:'fanta',icon:'⭐',label:'Fanta'},
+  ];
+  sportWrap.innerHTML=`<div class="ss-grid">${
+    sportList.map(s=>`<button class="ss-btn${S.sport===s.key?' active':''}" data-sport="${s.key}">
+      <span class="ss-icon">${s.icon}</span><span>${s.label}</span>
+    </button>`).join('')
+  }</div>`;
+  sportWrap.querySelectorAll('.ss-btn').forEach(btn=>{
+    btn.onclick=()=>{switchSport(btn.dataset.sport);closeSidebar();};
+  });
+  nav.appendChild(sportWrap);
 
   // Language selector at top
   const langWrap=document.createElement('div');
@@ -648,8 +667,7 @@ function renderSidebar(){
 function setupTabs(){qsa('.sport-tab,.msport-btn').forEach(btn=>{btn.onclick=()=>switchSport(btn.dataset.sport);});}
 function switchSport(sport){
   qsa('.sport-tab').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
-  qsa('.msport-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
-  document.querySelectorAll('.bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
+  qsa('.ss-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   if(sport==='news'){S.sport='news';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadNews();return;}
   if(sport==='fanta'){S.sport='fanta';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadFantaGiornata();return;}
