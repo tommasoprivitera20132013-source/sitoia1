@@ -222,6 +222,7 @@ const CATS = [
 
 /* ── STATE ────────────────────────────────────────────────── */
 const S = {
+  page:'scores', // 'scores' | 'comps' | 'news' | 'fanta'
   sport:'football', compId:null, et:'soccer', view:'scores',
   timer:null, prevScores:{}, date:null,
 };
@@ -256,7 +257,7 @@ function renderDateNav(){
     btn.onclick=()=>{
       S.date=btn.dataset.date||null;
       renderDateNav();
-      if(S.compId) loadContent(); else loadCompetitionsOverview();
+      if(S.compId) loadContent(); else loadPageContent();
     };
   });
   setTimeout(()=>{const a=el.querySelector('.dn-btn.active');if(a)a.scrollIntoView({inline:'center',block:'nearest',behavior:'instant'});},50);
@@ -332,13 +333,89 @@ async function loadCompetitionsOverview(){
 }
 
 function backToOverview(){
-  S.compId=null;S.view='scores';
+  S.compId=null; S.view='scores';
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   const ch=$id('content-header');if(ch) ch.style.display='none';
-  const bns=$id('bn-sports');const bnc=$id('bn-comp');
-  if(bns) bns.style.display='flex';
-  if(bnc) bnc.style.display='none';
+  _showSportFilter(S.page!=='news'&&S.page!=='fanta');
+  renderDateNav();
+  loadPageContent();
+}
+
+function _showSportFilter(show){
+  const sf=$id('sport-filter');
+  if(!sf) return;
+  sf.style.display=show?'flex':'none';
+  document.documentElement.style.setProperty('--sfh',show?'40px':'0px');
+}
+
+function _updateSfActive(){
+  qsa('#sport-filter .sf-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport===S.sport));
+}
+
+/* ── PAGE NAVIGATION (bottom nav) ────────────────── */
+function gotoPage(page){
+  if(S.timer){clearInterval(S.timer);S.timer=null;}
+  S.page=page; S.compId=null; S.view='scores';
+  qsa('#bottom-nav .bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));
+  const ch=$id('content-header');if(ch) ch.style.display='none';
+  const showSf=page==='scores'||page==='comps';
+  _showSportFilter(showSf);
+  _updateSfActive();
+  renderDateNav();
+  loadPageContent();
+}
+
+function setSport(sport){
+  if(S.timer){clearInterval(S.timer);S.timer=null;}
+  S.sport=sport; S.compId=null; S.view='scores';
+  const ch=$id('content-header');if(ch) ch.style.display='none';
+  _updateSfActive();
+  renderDateNav();
+  loadPageContent();
+}
+
+function loadPageContent(){
+  if(S.page==='news'){loadNews();return;}
+  if(S.page==='fanta'){loadFantaGiornata();return;}
+  if(S.sport==='f1'){loadF1();return;}
+  if(S.page==='comps'){loadCompsIndex();return;}
   loadCompetitionsOverview();
+}
+
+/* ── COMPETITION INDEX (Competizioni page) ────────── */
+function loadCompsIndex(){
+  const el=$id('content');
+  const sport=S.sport;
+  const favComps=JSON.parse(localStorage.getItem('sl_favcomps')||'[]');
+  let html='';
+
+  const cats=CATS.filter(c=>c.sport===sport);
+  if(!cats.length){el.innerHTML=`<div class="empty-state"><p>Nessuna competizione</p></div>`;return;}
+
+  if(favComps.length){
+    const favItems=cats.flatMap(c=>c.comps).filter(c=>favComps.includes(c.id));
+    if(favItems.length){
+      html+=`<div class="ci-section"><div class="ci-section-head">⭐ Preferiti</div>`;
+      const favCat=cats[0];
+      html+=favItems.map(c=>`<button class="ci-item" onclick="selectComp('${c.id}','${favCat.et||'soccer'}','${sport}')">
+        ${LL[c.id]?`<img src="${LL[c.id]}" class="ci-logo" onerror="this.style.display='none'">`:'<div class="ci-logo-ph"></div>'}
+        <span class="ci-name">${esc(c.name)}</span>
+        <svg class="ci-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>`).join('');
+      html+=`</div>`;
+    }
+  }
+
+  for(const cat of cats){
+    html+=`<div class="ci-section"><div class="ci-section-head">${compFlag(cat.id)} ${t(cat.labelKey)||cat.id}</div>`;
+    html+=cat.comps.map(c=>`<button class="ci-item" onclick="selectComp('${c.id}','${cat.et||'soccer'}','${sport}')">
+      ${LL[c.id]?`<img src="${LL[c.id]}" class="ci-logo" onerror="this.style.display='none'">`:'<div class="ci-logo-ph"></div>'}
+      <span class="ci-name">${esc(c.name)}</span>
+      <svg class="ci-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>`).join('');
+    html+=`</div>`;
+  }
+  el.innerHTML=html;
 }
 
 /* ── FANTA SQUAD ──────────────────────────────────────────── */
@@ -405,44 +482,138 @@ function fantaLivePoints(playerName){
 
 async function loadFantaGiornata(){
   const el=$id('content');
-  $id('view-tabs').style.display='none';
-  el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
+  const preset=fantaPreset();
+  const roles=preset.roles||['P','D','C','A'];
+  const defRole=roles[roles.length-1];
+  const posMap={GK:'P',G:'P',D:'D',CB:'D',LB:'D',RB:'D',WB:'D',M:'C',MF:'C',CM:'C',DM:'C',AM:'C',FW:'A',F:'A',W:'A',LW:'A',RW:'A',SS:'A'};
+
+  function squadHTML(){
+    return `<div class="fanta-squad-sec" id="fanta-squad-sec" style="background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px 8px;border-bottom:1px solid var(--border)">
+        <span style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt3)">Rosa Fantacalcio</span>
+        <span class="fanta-cnt">${FANTA.length}</span>
+      </div>
+      <div class="fanta-mode-sel" style="padding:10px 14px 0">
+        ${Object.keys(FANTA_PRESETS).map(k=>`<button class="fanta-mode-btn${FANTA_MODE===k?' active':''}" data-mode="${k}">${FANTA_PRESETS[k].name}</button>`).join('')}
+      </div>
+      <div class="fanta-search-wrap" style="padding:10px 14px 6px">
+        <div class="fanta-add-row">
+          <select class="fanta-role-sel" id="fanta-role-sel">
+            ${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}
+          </select>
+          <input class="fanta-input" id="fanta-input" type="text" placeholder="Cerca giocatore..." autocomplete="off">
+          <button class="fanta-add-btn" id="fanta-add-btn" title="Aggiungi">+</button>
+        </div>
+        <div class="fanta-search-drop" id="fanta-search-drop"></div>
+      </div>
+      <div class="fanta-players" style="padding:0 14px 10px">
+        ${FANTA.length===0?`<div class="fanta-empty">Nessun giocatore aggiunto</div>`:
+          FANTA.map((p,i)=>{
+            const name=typeof p==='object'?p.name:p;
+            const role=typeof p==='object'?p.role:defRole;
+            return `<div class="fanta-player" data-fi="${i}">
+              <span class="fg-role ${role}">${role}</span>
+              <span style="flex:1;margin:0 4px">${esc(name)}</span>
+              <button class="fanta-remove" data-fi="${i}" title="Rimuovi">x</button>
+            </div>`;
+          }).join('')}
+      </div>
+    </div>`;
+  }
+
+  function setupSquadEvents(){
+    const fantaSec=$id('fanta-squad-sec');
+    if(!fantaSec) return;
+    fantaSec.querySelectorAll('.fanta-mode-btn').forEach(btn=>{
+      btn.onclick=()=>{saveFantaMode(btn.dataset.mode);loadFantaGiornata();};
+    });
+    const inp=fantaSec.querySelector('#fanta-input');
+    const roleSel=fantaSec.querySelector('#fanta-role-sel');
+    const addBtn=fantaSec.querySelector('#fanta-add-btn');
+    const drop=fantaSec.querySelector('#fanta-search-drop');
+    if(!inp||!addBtn||!drop) return;
+    let searchTmr;
+    function addPlayer(name,role){
+      const v=(name||inp.value||'').trim();
+      if(!v) return;
+      const r=role||roleSel?.value||defRole;
+      const nameLC=v.toLowerCase();
+      if(!FANTA.some(p=>(typeof p==='object'?p.name:p).toLowerCase()===nameLC)){
+        FANTA.push({name:v,role:r}); saveFanta();
+      }
+      inp.value=''; drop.innerHTML='';
+      loadFantaGiornata();
+    }
+    addBtn.onclick=()=>addPlayer();
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPlayer();}});
+    inp.addEventListener('blur',()=>{setTimeout(()=>{drop.innerHTML='';},200);});
+    inp.addEventListener('input',()=>{
+      const q=(inp.value||'').trim();
+      if(q.length<2){drop.innerHTML='';return;}
+      clearTimeout(searchTmr);
+      searchTmr=setTimeout(async()=>{
+        try{
+          const data=await fetch(`${ESPN}/soccer/search?query=${encodeURIComponent(q)}&limit=20`).then(r=>r.json());
+          const athletes=(data.athletes||[]).slice(0,8);
+          if(!athletes.length){drop.innerHTML='';return;}
+          drop.innerHTML=athletes.map(a=>{
+            const name=a.displayName||'';
+            const pos=(a.position?.abbreviation||'').toUpperCase();
+            const team=a.team?.shortDisplayName||a.team?.displayName||'';
+            const photo=a.headshot?.href||'';
+            return `<div class="fd-item" data-name="${esc(name)}" data-pos="${esc(pos)}">
+              ${photo?`<img src="${esc(photo)}" class="fd-photo" onerror="this.style.display='none'">`:'<div class="fd-ph"></div>'}
+              <div class="fd-info">
+                <span class="fd-name">${esc(name)}</span>
+                <span class="fd-meta">${[pos,team].filter(Boolean).join(' · ')}</span>
+              </div>
+              <span class="fd-pos-badge">${pos||'?'}</span>
+            </div>`;
+          }).join('');
+          drop.querySelectorAll('.fd-item').forEach(item=>{
+            item.addEventListener('mousedown',e=>{
+              e.preventDefault();
+              const name=item.dataset.name;
+              const pos=item.dataset.pos;
+              const guessed=posMap[pos]||defRole;
+              const role=roles.includes(guessed)?guessed:defRole;
+              if(roleSel) roleSel.value=role;
+              addPlayer(name,role);
+            });
+          });
+        }catch{drop.innerHTML='';}
+      },300);
+    });
+    fantaSec.querySelectorAll('.fanta-remove').forEach(btn=>{
+      btn.onclick=e=>{
+        e.stopPropagation();
+        const idx=parseInt(btn.dataset.fi);
+        FANTA.splice(idx,1); saveFanta(); loadFantaGiornata();
+      };
+    });
+  }
 
   if(!FANTA.length){
-    el.innerHTML=`<div class="fanta-giornata"><div class="fg-no-squad">
+    el.innerHTML=`<div class="fanta-giornata">${squadHTML()}<div class="fg-no-squad">
       <p style="font-size:1.1rem;font-weight:700;color:var(--txt);margin-bottom:8px">Rosa vuota</p>
-      <p>Aggiungi i tuoi giocatori dalla barra laterale per vedere i punti live</p>
+      <p>Aggiungi i tuoi giocatori qui sopra per vedere i punti live</p>
     </div></div>`;
+    setupSquadEvents();
     return;
   }
 
-  // Load scoreboard for current competition
+  el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
+
   try{
     const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/scoreboard`);
     const data=await res.json();
     const events=data.events||[];
-    // Cache all events globally
     window._cachedEvents=events.flatMap(ev=>ev.competitions?.[0]?.details||[]);
 
-    // Calculate points per player
     const playerData=FANTA.map(p=>{
       const name=typeof p==='object'?p.name:p;
       const role=typeof p==='object'?p.role:'A';
       const pts=fantaLivePoints(name);
-      // Find which match this player is in (from lineups in scoreboard)
-      let matchInfo='';
-      events.forEach(ev=>{
-        const comp=ev.competitions?.[0];
-        const home=comp?.competitors?.find(c=>c.homeAway==='home');
-        const away=comp?.competitors?.find(c=>c.homeAway==='away');
-        if(home&&away){
-          const st=ev.status?.type?.state;
-          if(st==='in'||st==='post'){
-            matchInfo=`${home.team?.shortDisplayName||''} ${home.score??''}-${away.score??''} ${away.team?.shortDisplayName||''}`;
-          }
-        }
-      });
-      // Find events for this player
       const myEvents=(window._cachedEvents||[]).filter(ev=>{
         const n=name.toLowerCase();
         const s=(ev.athletesInvolved?.[0]?.displayName||'').toLowerCase();
@@ -461,7 +632,6 @@ async function loadFantaGiornata(){
         if((a.includes(n2)||n2.includes(a))&&type==='Goal') return `${min} ASS.`;
         return '';
       }).filter(Boolean);
-
       return {name,role,pts,eventLabels};
     });
 
@@ -480,14 +650,17 @@ async function loadFantaGiornata(){
     }).join('');
 
     el.innerHTML=`<div class="fanta-giornata">
+      ${squadHTML()}
       <div class="fg-header">
         <div class="fg-total">${totalStr}</div>
         <div class="fg-sub">Punti giornata in corso</div>
       </div>
       <div class="fg-players">${rows}</div>
     </div>`;
+    setupSquadEvents();
   }catch{
-    el.innerHTML=`<div class="error-state"><p>${t('errore')}</p></div>`;
+    el.innerHTML=`<div class="fanta-giornata">${squadHTML()}<div class="error-state"><p>${t('errore')}</p></div></div>`;
+    setupSquadEvents();
   }
 }
 
@@ -527,43 +700,31 @@ function applyLangToDOM(){
   const scb=$id('search-close-btn');if(scb)scb.textContent=t('chiudi');
 }
 
-/* ── COMP VIEW (bottom nav) ──────────────────────────────── */
-function setCompView(view){
+/* ── COMP SUB-TAB VIEW ────────────────────────────────────── */
+function setView(view){
   S.view=view;
-  qsa('#bn-comp .bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  qsa('#comp-subtabs .cst-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   loadContent();
   if(view==='scores') S.timer=setInterval(loadContent,REFRESH_MS);
 }
+// Legacy alias kept for any old onclick references
+function setCompView(view){setView(view);}
 
-/* ── SPORT TABS ───────────────────────────────────────────── */
-function setupTabs(){qsa('.sport-tab').forEach(btn=>{btn.onclick=()=>switchSport(btn.dataset.sport);});}
-function switchSport(sport){
-  qsa('#bn-sports .bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
-  const bns=$id('bn-sports');const bnc=$id('bn-comp');
-  if(bns) bns.style.display='flex';
-  if(bnc) bnc.style.display='none';
-  if(S.timer){clearInterval(S.timer);S.timer=null;}
-  if(sport==='news'){S.sport='news';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadNews();return;}
-  if(sport==='fanta'){S.sport='fanta';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadFantaGiornata();return;}
-  if(sport==='f1'){S.sport='f1';renderDateNav();selectComp('f1.current','f1','f1');return;}
-  // Football/Basketball: show competition overview
-  S.sport=sport;S.compId=null;
-  const ch=$id('content-header');if(ch)ch.style.display='none';
-  renderDateNav();
-  loadCompetitionsOverview();
-}
+/* ── SPORT TABS (legacy compat) ───────────────────────────── */
+function setupTabs(){} // no-op, sport filter handled by setSport()
+function switchSport(sport){setSport(sport);}
 
 /* ── COMP SELECT ──────────────────────────────────────────── */
 function selectComp(compId,et,sport){
   S.compId=compId; S.et=et||'soccer'; S.sport=sport||'football'; S.view='scores';
-  const ci=compInfo(compId); $id('page-title').textContent=ci.name||compId;
-  const ch=$id('content-header');const cbtn=$id('comp-back-btn');
+  const ci=compInfo(compId);
+  $id('page-title').textContent=ci.name||compId;
+  const ch=$id('content-header');
   if(ch) ch.style.display='';
-  if(cbtn) cbtn.style.display='flex';
-  const bns=$id('bn-sports');const bnc=$id('bn-comp');
-  if(bns) bns.style.display='none';
-  if(bnc){bnc.style.display='flex';qsa('#bn-comp .bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));}
+  _showSportFilter(false);
+  renderDateNav();
+  qsa('#comp-subtabs .cst-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   loadContent();
   S.timer=setInterval(loadContent,REFRESH_MS);
@@ -571,10 +732,7 @@ function selectComp(compId,et,sport){
 
 /* ── CONTENT ROUTING ──────────────────────────────────────── */
 function loadContent(){
-  if(S.sport==='news'){loadNews();return;}
-  if(S.sport==='f1'){loadF1();return;}
-  if(S.sport==='fanta'){loadFantaGiornata();return;}
-  if(!S.compId){loadCompetitionsOverview();return;}
+  if(!S.compId){loadPageContent();return;}
   if(S.view==='calendar') loadCalendar();
   else if(S.view==='standings') loadStandings();
   else if(S.view==='scorers') loadScorers();
@@ -774,10 +932,10 @@ async function loadStandings(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    // Try two ESPN endpoints — site.api (primary) and site.web.api (fallback)
     const urls=[
-      `${ESPN}/${espnSport()}/${espnPath()}/standings`,
       `https://site.web.api.espn.com/apis/v2/sports/${espnSport()}/${espnPath()}/standings`,
+      `https://site.api.espn.com/apis/v2/sports/${espnSport()}/${espnPath()}/standings`,
+      `${ESPN}/${espnSport()}/${espnPath()}/standings`,
     ];
     let data=null;
     for(const url of urls){
@@ -845,8 +1003,9 @@ async function loadScorers(){
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
     const urls=[
-      `${ESPN}/${espnSport()}/${espnPath()}/leaders`,
       `https://site.web.api.espn.com/apis/v2/sports/${espnSport()}/${espnPath()}/leaders`,
+      `https://site.api.espn.com/apis/v2/sports/${espnSport()}/${espnPath()}/leaders`,
+      `${ESPN}/${espnSport()}/${espnPath()}/leaders`,
     ];
     let data=null;
     for(const url of urls){
@@ -1333,21 +1492,61 @@ function updateTs(){$id('updated-at').textContent=t('aggiornato')+': '+new Date(
 async function requestNotifs(){if('Notification'in window&&Notification.permission==='default')await Notification.requestPermission();}
 function registerSW(){if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});}
 
-/* ── INIT ─────────────────────────────────────────────────── */
-function init(){
-  const ob=$id('onboarding-overlay'); if(ob) ob.style.display='none';
-  const fb=$id('fav-btn'); if(fb) fb.style.display='none';
-  const ch=$id('content-header'); if(ch) ch.style.display='none';
+/* ── ONBOARDING ───────────────────────────────────────────── */
+function setupOnboarding(ob){
+  const grid=$id('ob-comp-grid');
+  if(grid){
+    grid.innerHTML=CATS.filter(c=>c.sport==='football').flatMap(c=>c.comps).map(c=>`
+      <label class="ob-comp-item">
+        <input type="checkbox" name="obcomp" value="${c.id}" style="display:none">
+        ${LL[c.id]?`<img src="${LL[c.id]}" style="width:20px;height:20px;object-fit:contain" onerror="this.style.display='none'">`:''}
+        <span>${esc(c.name)}</span>
+      </label>`).join('');
+    grid.querySelectorAll('.ob-comp-item').forEach(item=>{
+      item.onclick=()=>{
+        const cb=item.querySelector('input');cb.checked=!cb.checked;
+        item.classList.toggle('selected',cb.checked);
+      };
+    });
+  }
+  $id('ob-next').onclick=()=>{
+    $id('ob-step-1').classList.remove('active');$id('ob-step-2').classList.add('active');
+    qsa('.ob-step-dot').forEach((d,i)=>d.classList.toggle('active',i===1));
+  };
+  $id('ob-back').onclick=()=>{
+    $id('ob-step-2').classList.remove('active');$id('ob-step-1').classList.add('active');
+    qsa('.ob-step-dot').forEach((d,i)=>d.classList.toggle('active',i===0));
+  };
+  $id('ob-finish').onclick=()=>{
+    const checked=[...ob.querySelectorAll('input[name="obcomp"]:checked')].map(i=>i.value);
+    if(checked.length) localStorage.setItem('sl_favcomps',JSON.stringify(checked));
+    localStorage.setItem('sl_done','1');
+    ob.classList.add('hidden');
+    startApp();
+  };
+}
 
+/* ── INIT ─────────────────────────────────────────────────── */
+function startApp(){
+  const fb=$id('fav-btn');if(fb) fb.style.display='none';
+  const ch=$id('content-header');if(ch) ch.style.display='none';
   applyLangToDOM();
-  setupTabs();
   setupModal();
   setupTeamView();
   setupSearch();
   requestNotifs();
   registerSW();
+  gotoPage('scores');
+}
 
-  switchSport('football');
+function init(){
+  const ob=$id('onboarding-overlay');
+  if(!localStorage.getItem('sl_done')&&ob){
+    setupOnboarding(ob);
+    return;
+  }
+  if(ob) ob.classList.add('hidden');
+  startApp();
 }
 
 document.addEventListener('DOMContentLoaded',init);

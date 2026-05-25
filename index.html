@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#1d4ed8">
+  <meta name="theme-color" content="#f97316">
   <meta name="description" content="Risultati sportivi in tempo reale - Calcio, Basket, Formula 1">
   <title>SportLive - Risultati in Tempo Reale</title>
   <link rel="manifest" href="manifest.json">
@@ -27,7 +27,7 @@
       <!-- Step 1: Competitions -->
       <div class="ob-step-panel active" id="ob-step-1">
         <h2 class="ob-title">Seleziona le tue competizioni preferite</h2>
-        <p class="ob-subtitle">Scegli i campionati che vuoi seguire. Potrai modificarli in seguito.</p>
+        <p class="ob-subtitle">Scegli i campionati che vuoi seguire. Appariranno per primi nella sezione Competizioni.</p>
         <div class="ob-comp-grid" id="ob-comp-grid"></div>
         <div class="ob-actions">
           <button class="ob-btn ob-btn-primary" id="ob-next">Avanti</button>
@@ -81,7 +81,6 @@
     <div class="logo">
       <span class="logo-name">Sport<span class="logo-live">Live</span></span>
     </div>
-
     <div class="header-right">
       <div class="live-pill" id="live-pill">
         <span class="live-dot"></span><span>LIVE</span>
@@ -92,20 +91,35 @@
     </div>
   </header>
 
+  <!-- SPORT FILTER (Calcio | Basket | F1) — hidden on news/fanta -->
+  <div class="sport-filter" id="sport-filter" style="display:none">
+    <button class="sf-btn active" data-sport="football" onclick="setSport('football')">⚽ Calcio</button>
+    <button class="sf-btn" data-sport="basketball" onclick="setSport('basketball')">🏀 Basket</button>
+    <button class="sf-btn" data-sport="f1" onclick="setSport('f1')">🏎️ F1</button>
+  </div>
+
   <!-- DATE NAV -->
   <div class="date-nav" id="date-nav"></div>
 
   <!-- LAYOUT -->
   <div class="layout">
-
     <!-- MAIN -->
     <main class="main">
+
+      <!-- Content header — shown when inside a competition -->
       <div class="content-header" id="content-header" style="display:none">
-        <div class="content-header-left">
-          <button class="comp-back-btn" id="comp-back-btn" onclick="backToOverview()" title="Tutte le competizioni" style="display:none">
+        <div class="content-header-top">
+          <button class="comp-back-btn" id="comp-back-btn" onclick="backToOverview()" title="Indietro">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
           </button>
           <h2 class="page-title" id="page-title">Champions League</h2>
+        </div>
+        <!-- Sub-tabs for competition detail -->
+        <div class="comp-subtabs" id="comp-subtabs">
+          <button class="cst-btn active" data-view="scores" onclick="setView('scores')">Partite</button>
+          <button class="cst-btn" data-view="standings" onclick="setView('standings')">Classifica</button>
+          <button class="cst-btn" data-view="scorers" onclick="setView('scorers')">Marcatori</button>
+          <button class="cst-btn" data-view="calendar" onclick="setView('calendar')">Calendario</button>
         </div>
       </div>
 
@@ -129,7 +143,7 @@
     <div class="modal" id="match-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
       <div class="modal-header">
         <h3 class="modal-title" id="modal-title">Dettaglio Partita</h3>
-        <button class="modal-close" id="modal-close" aria-label="Chiudi">X</button>
+        <button class="modal-close" id="modal-close" aria-label="Chiudi">✕</button>
       </div>
       <div class="modal-score-banner" id="modal-score-banner"></div>
       <div class="modal-tabs">
@@ -145,48 +159,37 @@
     </div>
   </div>
 
-  <!-- BOTTOM NAV (mobile/app) -->
+  <!-- BOTTOM NAV — 4 permanent tabs -->
   <nav class="bottom-nav" id="bottom-nav">
-    <div class="bn-row" id="bn-sports">
-      <button class="bn-btn active" data-sport="football" onclick="switchSport('football')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 6.9 17.1M12 2a10 10 0 0 0-6.9 17.1M12 22v-4M6 17l2-3M18 17l-2-3M8 6l4 3 4-3"/></svg>
-        <span class="bn-label">Calcio</span>
-      </button>
-      <button class="bn-btn" data-sport="basketball" onclick="switchSport('basketball')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9a14 14 0 0 1 14.2 14.2M4.9 19.1a14 14 0 0 1 14.2-14.2M2 12h20M12 2v20"/></svg>
-        <span class="bn-label">Basket</span>
-      </button>
-      <button class="bn-btn" data-sport="f1" onclick="switchSport('f1')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17h4l3-9 4 9h4M1 17l2-4M23 17l-2-4M7 13h10"/></svg>
-        <span class="bn-label">F1</span>
-      </button>
-      <button class="bn-btn" data-sport="news" onclick="switchSport('news')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0-1.86-1.99M2 13h6M2 9h6M2 17h6"/></svg>
-        <span class="bn-label">Notizie</span>
-      </button>
-      <button class="bn-btn" data-sport="fanta" onclick="switchSport('fanta')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        <span class="bn-label">Fanta</span>
-      </button>
-    </div>
-    <div class="bn-row" id="bn-comp" style="display:none">
-      <button class="bn-btn active" data-view="scores" onclick="setCompView('scores')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span class="bn-label">Partite</span>
-      </button>
-      <button class="bn-btn" data-view="standings" onclick="setCompView('standings')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span class="bn-label">Classifica</span>
-      </button>
-      <button class="bn-btn" data-view="calendar" onclick="setCompView('calendar')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span class="bn-label">Calendario</span>
-      </button>
-      <button class="bn-btn" data-view="scorers" onclick="setCompView('scorers')">
-        <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M12 12v10M9 19l3-3 3 3"/></svg>
-        <span class="bn-label">Marcatori</span>
-      </button>
-    </div>
+    <button class="bn-btn active" data-page="scores" onclick="gotoPage('scores')">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="12 6 12 12 16 14"/>
+      </svg>
+      <span class="bn-label">Risultati</span>
+    </button>
+    <button class="bn-btn" data-page="comps" onclick="gotoPage('comps')">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+        <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+      </svg>
+      <span class="bn-label">Competizioni</span>
+    </button>
+    <button class="bn-btn" data-page="news" onclick="gotoPage('news')">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 0-1.86-1.99"/>
+        <line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="11" x2="16" y2="11"/><line x1="8" y1="15" x2="12" y2="15"/>
+      </svg>
+      <span class="bn-label">Notizie</span>
+    </button>
+    <button class="bn-btn" data-page="fanta" onclick="gotoPage('fanta')">
+      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
+      <span class="bn-label">Fanta</span>
+    </button>
   </nav>
 
   <script src="app.js"></script>
