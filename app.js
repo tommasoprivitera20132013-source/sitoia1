@@ -1254,7 +1254,7 @@ function setupSidebar(){
   $id('hamburger').onclick=()=>toggleSidebar();
   $id('sidebar-close').onclick=()=>closeSidebar();
   $id('sidebar-overlay').onclick=()=>closeSidebar();
-  $id('settings-btn').onclick=()=>toggleSidebar();
+  const sb=$id('settings-btn');if(sb)sb.onclick=()=>toggleSidebar();
 }
 function toggleSidebar(){const open=$id('sidebar').classList.toggle('open');$id('sidebar-overlay').classList.toggle('visible',open);}
 function closeSidebar(){$id('sidebar').classList.remove('open');$id('sidebar-overlay').classList.remove('visible');}
