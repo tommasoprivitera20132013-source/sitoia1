@@ -262,31 +262,74 @@ function renderDateNav(){
   setTimeout(()=>{const a=el.querySelector('.dn-btn.active');if(a)a.scrollIntoView({inline:'center',block:'nearest',behavior:'instant'});},50);
 }
 
-function loadCompetitionsOverview(){
+async function loadCompetitionsOverview(){
   const el=$id('content');
   const ch=$id('content-header');const cbtn=$id('comp-back-btn');
   if(ch) ch.style.display='none';
   if(cbtn) cbtn.style.display='none';
   $id('view-tabs').style.display='none';
+  el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
+
   const cats=CATS.filter(cat=>cat.sport===S.sport||(S.sport==='football'&&(!cat.sport||cat.sport==='football')));
+  const allComps=cats.flatMap(cat=>(cat.comps||[]).map(comp=>({
+    id:comp.id,name:comp.name,
+    et:comp.et||cat.et||'soccer',
+    sport:cat.sport||'football',
+    catId:cat.id
+  })));
+
+  const dateParam=espnDateParam();
+  const results=await Promise.allSettled(allComps.map(async comp=>{
+    const sp=comp.sport==='basketball'?'basketball':'soccer';
+    const path=comp.sport==='basketball'?comp.et:comp.id;
+    const res=await fetch(`${ESPN}/${sp}/${path}/scoreboard${dateParam}`);
+    if(!res.ok) return {comp,events:[]};
+    const data=await res.json();
+    return {comp,events:data.events||[]};
+  }));
+
+  const withEvents=results
+    .filter(r=>r.status==='fulfilled'&&r.value.events.length>0)
+    .map(r=>r.value);
+
+  const liveCount=withEvents.flatMap(r=>r.events).filter(e=>e.status?.type?.state==='in').length;
+  const livePill=$id('live-pill');if(livePill)livePill.style.display=liveCount?'flex':'none';
+
+  if(!withEvents.length){
+    el.innerHTML=`<div class="empty-state"><p>${t('nessuna_partita')}</p></div>`;
+    return;
+  }
+
   let html='<div class="comp-overview">';
-  cats.forEach(cat=>{
-    const flag=compFlag(cat.id);
-    html+=`<div class="comp-group"><div class="comp-group-header">${flag} ${t(cat.labelKey)||cat.labelKey}</div>`;
-    (cat.comps||[]).forEach(comp=>{
-      const logo=LL[comp.id]||'';
-      const sport=cat.sport||'football';
-      const et=comp.et||cat.et||'soccer';
-      html+=`<div class="comp-overview-row" onclick="selectComp('${comp.id}','${et}','${sport}')">
+  withEvents.forEach(({comp,events})=>{
+    const logo=LL[comp.id]||'';
+    const flag=compFlag(comp.catId);
+    const hasLive=events.some(e=>e.status?.type?.state==='in');
+    html+=`<div class="ov-comp-block" data-cid="${comp.id}" data-cet="${comp.et}">
+      <div class="ov-comp-header" onclick="selectComp('${comp.id}','${comp.et}','${comp.sport}')">
         ${logo?`<img src="${logo}" class="comp-ov-logo" onerror="this.style.display='none'">`:`<span class="comp-flag">${flag}</span>`}
-        <div class="comp-overview-info"><span class="comp-overview-name">${esc(comp.name)}</span></div>
-        <svg class="comp-overview-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>`;
-    });
-    html+='</div>';
+        <span class="ov-comp-name">${esc(comp.name)}</span>
+        ${hasLive?'<span class="ov-live-dot"></span>':''}
+        <span class="ov-match-count">${events.length}</span>
+        <svg class="comp-overview-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+      <div class="ov-matches">
+        ${events.map(ev=>matchCard(ev)).join('')}
+      </div>
+    </div>`;
   });
   html+='</div>';
   el.innerHTML=html;
+
+  el.querySelectorAll('.ov-matches .match-card').forEach(card=>{
+    card.onclick=()=>{
+      const block=card.closest('.ov-comp-block');
+      if(block){S.compId=block.dataset.cid;S.et=block.dataset.cet;}
+      openModal(card.dataset.eid);
+    };
+  });
+
+  updateTs();
 }
 
 function backToOverview(){
