@@ -333,9 +333,10 @@ async function loadCompetitionsOverview(){
 }
 
 function backToOverview(){
-  S.compId=null;
+  S.compId=null; S.view='scores';
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   const ch=$id('content-header');if(ch) ch.style.display='none';
+  const ct=$id('comp-tabs');if(ct) ct.style.display='none';
   loadCompetitionsOverview();
 }
 
@@ -729,8 +730,13 @@ function selectComp(compId,et,sport){
   qsa('.comp-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===compId));
   const ci=compInfo(compId); $id('page-title').textContent=ci.name||compId;
   const ch=$id('content-header');const cbtn=$id('comp-back-btn');
+  const ctabs=$id('comp-tabs');
   if(ch) ch.style.display='';
   if(cbtn) cbtn.style.display='flex';
+  if(ctabs){
+    ctabs.style.display=sport!=='f1'?'flex':'none';
+    qsa('.comp-tab').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));
+  }
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   loadContent();
   S.timer=setInterval(loadContent,REFRESH_MS);
@@ -742,7 +748,9 @@ function loadContent(){
   if(S.sport==='f1'){loadF1();return;}
   if(S.sport==='fanta'){loadFantaGiornata();return;}
   if(!S.compId){loadCompetitionsOverview();return;}
-  loadScores();
+  if(S.view==='calendar') loadCalendar();
+  else if(S.view==='scorers') loadScorers();
+  else loadScores();
 }
 
 /* ── SCORES ───────────────────────────────────────────────── */
@@ -814,6 +822,50 @@ function matchCard(ev){
     </div>
     ${goalsHtml?`<div class="match-goals-bar">${goalsHtml}</div>`:''}
   </div>`;
+}
+
+/* ── CALENDAR ─────────────────────────────────────────────── */
+async function loadCalendar(){
+  const el=$id('content');
+  el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
+  const today=new Date();
+  const days=[];
+  for(let i=-4;i<=14;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const val=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+    days.push({val,label:fmtDate(d),isToday:i===0,isPast:i<0});
+  }
+  const results=await Promise.allSettled(days.map(async({val,label,isToday,isPast})=>{
+    const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/scoreboard?dates=${val}`);
+    if(!res.ok) return {label,events:[],isToday,isPast};
+    const data=await res.json();
+    return {label,events:data.events||[],isToday,isPast};
+  }));
+  const withMatches=results
+    .filter(r=>r.status==='fulfilled'&&r.value.events.length>0)
+    .map(r=>r.value);
+  if(!withMatches.length){
+    el.innerHTML=`<div class="empty-state"><p>${t('nessuna_partita')}</p></div>`;return;
+  }
+  let html='';
+  withMatches.forEach(({label,events,isToday,isPast})=>{
+    const headLabel=isToday?`<span class="msh-today">OGGI</span> ${label}`:label;
+    const hasLive=events.some(e=>e.status?.type?.state==='in');
+    html+=`<div class="match-section${isPast?' cal-past':''}">
+      <div class="match-section-head">
+        <span class="msh-name">${headLabel}</span>
+        ${hasLive?'<span class="msh-live-dot"></span>':''}
+        <span class="msh-count">${events.length} ${t('partite')}</span>
+      </div>
+      ${events.map(ev=>matchCard(ev)).join('')}
+    </div>`;
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.match-card').forEach(card=>{card.onclick=()=>openModal(card.dataset.eid);});
+  // Scroll to today's section
+  const todayEl=el.querySelector('.msh-today');
+  if(todayEl) setTimeout(()=>todayEl.closest('.match-section')?.scrollIntoView({behavior:'smooth',block:'start'}),100);
+  updateTs();
 }
 
 function matchGoals(comp){
@@ -1453,6 +1505,17 @@ function setupSidebar(){
 function toggleSidebar(){const open=$id('sidebar').classList.toggle('open');$id('sidebar-overlay').classList.toggle('visible',open);}
 function closeSidebar(){$id('sidebar').classList.remove('open');$id('sidebar-overlay').classList.remove('visible');}
 
+function setupCompTabs(){
+  qsa('.comp-tab').forEach(btn=>{
+    btn.onclick=()=>{
+      S.view=btn.dataset.view;
+      qsa('.comp-tab').forEach(b=>b.classList.toggle('active',b===btn));
+      if(S.timer){clearInterval(S.timer);S.timer=null;}
+      loadContent();
+      if(S.view==='scores') S.timer=setInterval(loadContent,REFRESH_MS);
+    };
+  });
+}
 function setupModal(){
   $id('modal-close').onclick=()=>$id('modal-backdrop').classList.remove('open');
   $id('modal-backdrop').onclick=e=>{if(e.target===$id('modal-backdrop'))$id('modal-backdrop').classList.remove('open');};
@@ -1477,6 +1540,7 @@ function init(){
   renderSidebar();
   setupTabs();
   setupSidebar();
+  setupCompTabs();
   setupModal();
   setupTeamView();
   setupSearch();
