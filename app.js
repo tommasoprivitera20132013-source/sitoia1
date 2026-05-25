@@ -595,6 +595,7 @@ function renderSidebar(){
     const preset=fantaPreset();
     const roles=preset.roles||['P','D','C','A'];
     const defRole=roles[roles.length-1];
+    const posMap={GK:'P',G:'P',D:'D',CB:'D',LB:'D',RB:'D',WB:'D',M:'C',MF:'C',CM:'C',DM:'C',AM:'C',FW:'A',F:'A',W:'A',LW:'A',RW:'A',SS:'A'};
     fantaSec.innerHTML=`
       <div class="fanta-squad-header">
         <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt3)">Rosa Fantacalcio</span>
@@ -603,12 +604,15 @@ function renderSidebar(){
       <div class="fanta-mode-sel">
         ${Object.keys(FANTA_PRESETS).map(k=>`<button class="fanta-mode-btn${FANTA_MODE===k?' active':''}" data-mode="${k}">${FANTA_PRESETS[k].name}</button>`).join('')}
       </div>
-      <div class="fanta-add-row">
-        <select class="fanta-role-sel" id="fanta-role-sel">
-          ${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}
-        </select>
-        <input class="fanta-input" id="fanta-input" type="text" placeholder="Nome giocatore..." autocomplete="off">
-        <button class="fanta-add-btn" id="fanta-add-btn" title="Aggiungi">+</button>
+      <div class="fanta-search-wrap">
+        <div class="fanta-add-row">
+          <select class="fanta-role-sel" id="fanta-role-sel">
+            ${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}
+          </select>
+          <input class="fanta-input" id="fanta-input" type="text" placeholder="Cerca giocatore..." autocomplete="off">
+          <button class="fanta-add-btn" id="fanta-add-btn" title="Aggiungi">+</button>
+        </div>
+        <div class="fanta-search-drop" id="fanta-search-drop"></div>
       </div>
       <div class="fanta-players" id="fanta-players-list">
         ${FANTA.length===0?`<div class="fanta-empty">Nessun giocatore aggiunto</div>`:
@@ -628,19 +632,59 @@ function renderSidebar(){
     const inp=fantaSec.querySelector('#fanta-input');
     const roleSel=fantaSec.querySelector('#fanta-role-sel');
     const addBtn=fantaSec.querySelector('#fanta-add-btn');
-    function addPlayer(){
-      const v=(inp.value||'').trim();
+    const drop=fantaSec.querySelector('#fanta-search-drop');
+    let searchTmr;
+    function addPlayer(name,role){
+      const v=(name||inp.value||'').trim();
       if(!v) return;
-      const role=roleSel?.value||defRole;
+      const r=role||roleSel?.value||defRole;
       const nameLC=v.toLowerCase();
       if(!FANTA.some(p=>(typeof p==='object'?p.name:p).toLowerCase()===nameLC)){
-        FANTA.push({name:v,role}); saveFanta();
+        FANTA.push({name:v,role:r}); saveFanta();
       }
-      inp.value='';
+      inp.value=''; drop.innerHTML='';
       renderFantaSection();
     }
-    addBtn.onclick=addPlayer;
+    addBtn.onclick=()=>addPlayer();
     inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPlayer();}});
+    inp.addEventListener('blur',()=>{setTimeout(()=>{drop.innerHTML='';},200);});
+    inp.addEventListener('input',()=>{
+      const q=(inp.value||'').trim();
+      if(q.length<2){drop.innerHTML='';return;}
+      clearTimeout(searchTmr);
+      searchTmr=setTimeout(async()=>{
+        try{
+          const data=await fetch(`${ESPN}/soccer/search?query=${encodeURIComponent(q)}&limit=20`).then(r=>r.json());
+          const athletes=(data.athletes||[]).slice(0,8);
+          if(!athletes.length){drop.innerHTML='';return;}
+          drop.innerHTML=athletes.map(a=>{
+            const name=a.displayName||'';
+            const pos=(a.position?.abbreviation||'').toUpperCase();
+            const team=a.team?.shortDisplayName||a.team?.displayName||'';
+            const photo=a.headshot?.href||'';
+            return `<div class="fd-item" data-name="${esc(name)}" data-pos="${esc(pos)}">
+              ${photo?`<img src="${esc(photo)}" class="fd-photo" onerror="this.style.display='none'">`:'<div class="fd-ph"></div>'}
+              <div class="fd-info">
+                <span class="fd-name">${esc(name)}</span>
+                <span class="fd-meta">${[pos,team].filter(Boolean).join(' · ')}</span>
+              </div>
+              <span class="fd-pos-badge">${pos||'?'}</span>
+            </div>`;
+          }).join('');
+          drop.querySelectorAll('.fd-item').forEach(item=>{
+            item.addEventListener('mousedown',e=>{
+              e.preventDefault();
+              const name=item.dataset.name;
+              const pos=item.dataset.pos;
+              const guessed=posMap[pos]||defRole;
+              const role=roles.includes(guessed)?guessed:defRole;
+              if(roleSel) roleSel.value=role;
+              addPlayer(name,role);
+            });
+          });
+        }catch{drop.innerHTML='';}
+      },300);
+    });
     fantaSec.querySelectorAll('.fanta-remove').forEach(btn=>{
       btn.onclick=e=>{
         e.stopPropagation();
@@ -682,16 +726,11 @@ function switchSport(sport){
 /* ── COMP SELECT ──────────────────────────────────────────── */
 function selectComp(compId,et,sport){
   S.compId=compId; S.et=et||'soccer'; S.sport=sport||'football'; S.view='scores';
-  document.querySelectorAll('.bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===S.sport));
   qsa('.comp-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===compId));
   const ci=compInfo(compId); $id('page-title').textContent=ci.name||compId;
-  const showTabs=sport!=='f1'&&sport!=='news';
-  // Show content header + back button
   const ch=$id('content-header');const cbtn=$id('comp-back-btn');
   if(ch) ch.style.display='';
   if(cbtn) cbtn.style.display='flex';
-  $id('view-tabs').style.display=showTabs?'flex':'none';
-  if(showTabs) qsa('.view-tab').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   loadContent();
   S.timer=setInterval(loadContent,REFRESH_MS);
@@ -703,9 +742,7 @@ function loadContent(){
   if(S.sport==='f1'){loadF1();return;}
   if(S.sport==='fanta'){loadFantaGiornata();return;}
   if(!S.compId){loadCompetitionsOverview();return;}
-  if(S.view==='scores') loadScores();
-  else if(S.view==='standings') loadStandings();
-  else if(S.view==='scorers') loadScorers();
+  loadScores();
 }
 
 /* ── SCORES ───────────────────────────────────────────────── */
@@ -1416,11 +1453,6 @@ function setupSidebar(){
 function toggleSidebar(){const open=$id('sidebar').classList.toggle('open');$id('sidebar-overlay').classList.toggle('visible',open);}
 function closeSidebar(){$id('sidebar').classList.remove('open');$id('sidebar-overlay').classList.remove('visible');}
 
-function setupViewTabs(){
-  qsa('.view-tab').forEach(btn=>{
-    btn.onclick=()=>{S.view=btn.dataset.view;qsa('.view-tab').forEach(b=>b.classList.toggle('active',b===btn));loadContent();};
-  });
-}
 function setupModal(){
   $id('modal-close').onclick=()=>$id('modal-backdrop').classList.remove('open');
   $id('modal-backdrop').onclick=e=>{if(e.target===$id('modal-backdrop'))$id('modal-backdrop').classList.remove('open');};
@@ -1445,7 +1477,6 @@ function init(){
   renderSidebar();
   setupTabs();
   setupSidebar();
-  setupViewTabs();
   setupModal();
   setupTeamView();
   setupSearch();
