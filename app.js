@@ -267,7 +267,6 @@ async function loadCompetitionsOverview(){
   const ch=$id('content-header');const cbtn=$id('comp-back-btn');
   if(ch) ch.style.display='none';
   if(cbtn) cbtn.style.display='none';
-  $id('view-tabs').style.display='none';
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
 
   const cats=CATS.filter(cat=>cat.sport===S.sport||(S.sport==='football'&&(!cat.sport||cat.sport==='football')));
@@ -333,10 +332,12 @@ async function loadCompetitionsOverview(){
 }
 
 function backToOverview(){
-  S.compId=null; S.view='scores';
+  S.compId=null;S.view='scores';
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   const ch=$id('content-header');if(ch) ch.style.display='none';
-  const ct=$id('comp-tabs');if(ct) ct.style.display='none';
+  const bns=$id('bn-sports');const bnc=$id('bn-comp');
+  if(bns) bns.style.display='flex';
+  if(bnc) bnc.style.display='none';
   loadCompetitionsOverview();
 }
 
@@ -518,201 +519,30 @@ function espnPath(){return S.sport==='basketball'?S.et:S.compId;}
 function espnSport(){return S.sport==='basketball'?'basketball':'soccer';}
 
 /* ── LANGUAGE ─────────────────────────────────────────────── */
-function setLang(l){LANG=l;localStorage.setItem('sl_lang',l);applyLangToDOM();renderSidebar();}
+function setLang(l){LANG=l;localStorage.setItem('sl_lang',l);applyLangToDOM();}
 function applyLangToDOM(){
   const tabMap={football:'calcio',basketball:'basket',f1:'f1',news:'notizie'};
   qsa('.sport-tab').forEach(b=>{const lbl=b.querySelector('.tab-label');if(lbl)lbl.textContent=t(tabMap[b.dataset.sport]||b.dataset.sport);});
-  const vtMap={scores:'risultati',standings:'classifica',scorers:'marcatori'};
-  qsa('.view-tab').forEach(b=>{b.textContent=t(vtMap[b.dataset.view]||b.dataset.view);});
-  const ls=$id('league-search');if(ls)ls.placeholder=t('cerca_comp');
-  const rb=$id('reset-prefs-btn');if(rb)rb.textContent=t('reimposta');
   const si=$id('global-search-input');if(si)si.placeholder=t('cerca');
   const scb=$id('search-close-btn');if(scb)scb.textContent=t('chiudi');
 }
 
-/* ── SIDEBAR ──────────────────────────────────────────────── */
-function renderSidebar(){
-  const nav=$id('league-nav'); nav.innerHTML='';
-
-  // Sport switcher at top
-  const sportWrap=document.createElement('div');
-  sportWrap.className='sidebar-sports';
-  const sportList=[
-    {key:'football',icon:'⚽',label:'Calcio'},
-    {key:'basketball',icon:'🏀',label:'Basket'},
-    {key:'f1',icon:'🏎️',label:'F1'},
-    {key:'news',icon:'📰',label:'Notizie'},
-    {key:'fanta',icon:'⭐',label:'Fanta'},
-  ];
-  sportWrap.innerHTML=`<div class="ss-grid">${
-    sportList.map(s=>`<button class="ss-btn${S.sport===s.key?' active':''}" data-sport="${s.key}">
-      <span class="ss-icon">${s.icon}</span><span>${s.label}</span>
-    </button>`).join('')
-  }</div>`;
-  sportWrap.querySelectorAll('.ss-btn').forEach(btn=>{
-    btn.onclick=()=>{switchSport(btn.dataset.sport);closeSidebar();};
-  });
-  nav.appendChild(sportWrap);
-
-  // Language selector at top
-  const langWrap=document.createElement('div');
-  langWrap.className='lang-selector';
-  const langNames={it:'IT',en:'EN',es:'ES',fr:'FR',de:'DE'};
-  langWrap.innerHTML=`<div class="lang-label">${t('lingua')}</div><div class="lang-btns">
-    ${Object.entries(langNames).map(([code,name])=>
-      `<button class="lang-btn${LANG===code?' active':''}" data-lang="${code}">${name}</button>`
-    ).join('')}</div>`;
-  langWrap.querySelectorAll('.lang-btn').forEach(btn=>{
-    btn.onclick=()=>{langWrap.querySelectorAll('.lang-btn').forEach(b=>b.classList.toggle('active',b===btn));setLang(btn.dataset.lang);};
-  });
-  nav.appendChild(langWrap);
-
-  CATS.forEach(cat=>{
-    const sec=document.createElement('div'); sec.className='cat-section';
-    const hdr=document.createElement('div'); hdr.className='cat-header';
-    hdr.innerHTML=`<span>${t(cat.labelKey)||cat.labelKey}</span>`;
-    sec.appendChild(hdr);
-    const items=document.createElement('div'); items.className='cat-items';
-    (cat.comps||[]).forEach(comp=>{
-      const sport=cat.sport||'football';
-      const et=comp.et||cat.et||'soccer';
-      const btn=document.createElement('button');
-      btn.className='comp-btn'+(comp.id===S.compId?' active':'');
-      btn.dataset.id=comp.id;
-      const logo=LL[comp.id];
-      btn.innerHTML=`${logo?`<img src="${logo}" width="16" height="16" style="object-fit:contain;flex-shrink:0;margin-right:4px" onerror="this.style.display='none'">`:''}
-        <span class="comp-name">${comp.name}</span>`;
-      btn.onclick=()=>{selectComp(comp.id,et,sport);closeSidebar();};
-      items.appendChild(btn);
-    });
-    sec.appendChild(items); nav.appendChild(sec);
-  });
-
-  // Fanta squad section (not a cat-section, unaffected by search filter)
-  const fantaSec=document.createElement('div');
-  fantaSec.className='fanta-squad-sec';
-  fantaSec.id='fanta-squad-sec';
-  function renderFantaSection(){
-    const preset=fantaPreset();
-    const roles=preset.roles||['P','D','C','A'];
-    const defRole=roles[roles.length-1];
-    const posMap={GK:'P',G:'P',D:'D',CB:'D',LB:'D',RB:'D',WB:'D',M:'C',MF:'C',CM:'C',DM:'C',AM:'C',FW:'A',F:'A',W:'A',LW:'A',RW:'A',SS:'A'};
-    fantaSec.innerHTML=`
-      <div class="fanta-squad-header">
-        <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt3)">Rosa Fantacalcio</span>
-        <span class="fanta-cnt">${FANTA.length}</span>
-      </div>
-      <div class="fanta-mode-sel">
-        ${Object.keys(FANTA_PRESETS).map(k=>`<button class="fanta-mode-btn${FANTA_MODE===k?' active':''}" data-mode="${k}">${FANTA_PRESETS[k].name}</button>`).join('')}
-      </div>
-      <div class="fanta-search-wrap">
-        <div class="fanta-add-row">
-          <select class="fanta-role-sel" id="fanta-role-sel">
-            ${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}
-          </select>
-          <input class="fanta-input" id="fanta-input" type="text" placeholder="Cerca giocatore..." autocomplete="off">
-          <button class="fanta-add-btn" id="fanta-add-btn" title="Aggiungi">+</button>
-        </div>
-        <div class="fanta-search-drop" id="fanta-search-drop"></div>
-      </div>
-      <div class="fanta-players" id="fanta-players-list">
-        ${FANTA.length===0?`<div class="fanta-empty">Nessun giocatore aggiunto</div>`:
-          FANTA.map((p,i)=>{
-            const name=typeof p==='object'?p.name:p;
-            const role=typeof p==='object'?p.role:defRole;
-            return `<div class="fanta-player" data-fi="${i}">
-              <span class="fg-role ${role}">${role}</span>
-              <span style="flex:1;margin:0 4px">${esc(name)}</span>
-              <button class="fanta-remove" data-fi="${i}" title="Rimuovi">×</button>
-            </div>`;
-          }).join('')}
-      </div>`;
-    fantaSec.querySelectorAll('.fanta-mode-btn').forEach(btn=>{
-      btn.onclick=()=>{saveFantaMode(btn.dataset.mode);renderFantaSection();};
-    });
-    const inp=fantaSec.querySelector('#fanta-input');
-    const roleSel=fantaSec.querySelector('#fanta-role-sel');
-    const addBtn=fantaSec.querySelector('#fanta-add-btn');
-    const drop=fantaSec.querySelector('#fanta-search-drop');
-    let searchTmr;
-    function addPlayer(name,role){
-      const v=(name||inp.value||'').trim();
-      if(!v) return;
-      const r=role||roleSel?.value||defRole;
-      const nameLC=v.toLowerCase();
-      if(!FANTA.some(p=>(typeof p==='object'?p.name:p).toLowerCase()===nameLC)){
-        FANTA.push({name:v,role:r}); saveFanta();
-      }
-      inp.value=''; drop.innerHTML='';
-      renderFantaSection();
-    }
-    addBtn.onclick=()=>addPlayer();
-    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();addPlayer();}});
-    inp.addEventListener('blur',()=>{setTimeout(()=>{drop.innerHTML='';},200);});
-    inp.addEventListener('input',()=>{
-      const q=(inp.value||'').trim();
-      if(q.length<2){drop.innerHTML='';return;}
-      clearTimeout(searchTmr);
-      searchTmr=setTimeout(async()=>{
-        try{
-          const data=await fetch(`${ESPN}/soccer/search?query=${encodeURIComponent(q)}&limit=20`).then(r=>r.json());
-          const athletes=(data.athletes||[]).slice(0,8);
-          if(!athletes.length){drop.innerHTML='';return;}
-          drop.innerHTML=athletes.map(a=>{
-            const name=a.displayName||'';
-            const pos=(a.position?.abbreviation||'').toUpperCase();
-            const team=a.team?.shortDisplayName||a.team?.displayName||'';
-            const photo=a.headshot?.href||'';
-            return `<div class="fd-item" data-name="${esc(name)}" data-pos="${esc(pos)}">
-              ${photo?`<img src="${esc(photo)}" class="fd-photo" onerror="this.style.display='none'">`:'<div class="fd-ph"></div>'}
-              <div class="fd-info">
-                <span class="fd-name">${esc(name)}</span>
-                <span class="fd-meta">${[pos,team].filter(Boolean).join(' · ')}</span>
-              </div>
-              <span class="fd-pos-badge">${pos||'?'}</span>
-            </div>`;
-          }).join('');
-          drop.querySelectorAll('.fd-item').forEach(item=>{
-            item.addEventListener('mousedown',e=>{
-              e.preventDefault();
-              const name=item.dataset.name;
-              const pos=item.dataset.pos;
-              const guessed=posMap[pos]||defRole;
-              const role=roles.includes(guessed)?guessed:defRole;
-              if(roleSel) roleSel.value=role;
-              addPlayer(name,role);
-            });
-          });
-        }catch{drop.innerHTML='';}
-      },300);
-    });
-    fantaSec.querySelectorAll('.fanta-remove').forEach(btn=>{
-      btn.onclick=e=>{
-        e.stopPropagation();
-        const idx=parseInt(btn.dataset.fi);
-        FANTA.splice(idx,1); saveFanta(); renderFantaSection();
-      };
-    });
-  }
-  renderFantaSection();
-  nav.appendChild(fantaSec);
-
-  const si=$id('league-search');
-  si.oninput=()=>{
-    const q=si.value.toLowerCase();
-    qsa('.comp-btn',nav).forEach(b=>{b.style.display=b.textContent.toLowerCase().includes(q)?'':'none';});
-    qsa('.cat-section',nav).forEach(sec=>{
-      const vis=qsa('.comp-btn',sec).some(b=>b.style.display!=='none');
-      sec.style.display=vis?'':'none';
-    });
-  };
+/* ── COMP VIEW (bottom nav) ──────────────────────────────── */
+function setCompView(view){
+  S.view=view;
+  qsa('#bn-comp .bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===view));
+  if(S.timer){clearInterval(S.timer);S.timer=null;}
+  loadContent();
+  if(view==='scores') S.timer=setInterval(loadContent,REFRESH_MS);
 }
 
 /* ── SPORT TABS ───────────────────────────────────────────── */
-function setupTabs(){qsa('.sport-tab,.msport-btn').forEach(btn=>{btn.onclick=()=>switchSport(btn.dataset.sport);});}
+function setupTabs(){qsa('.sport-tab').forEach(btn=>{btn.onclick=()=>switchSport(btn.dataset.sport);});}
 function switchSport(sport){
-  qsa('.sport-tab').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
-  qsa('.ss-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
+  qsa('#bn-sports .bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
+  const bns=$id('bn-sports');const bnc=$id('bn-comp');
+  if(bns) bns.style.display='flex';
+  if(bnc) bnc.style.display='none';
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   if(sport==='news'){S.sport='news';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadNews();return;}
   if(sport==='fanta'){S.sport='fanta';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadFantaGiornata();return;}
@@ -727,16 +557,13 @@ function switchSport(sport){
 /* ── COMP SELECT ──────────────────────────────────────────── */
 function selectComp(compId,et,sport){
   S.compId=compId; S.et=et||'soccer'; S.sport=sport||'football'; S.view='scores';
-  qsa('.comp-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===compId));
   const ci=compInfo(compId); $id('page-title').textContent=ci.name||compId;
   const ch=$id('content-header');const cbtn=$id('comp-back-btn');
-  const ctabs=$id('comp-tabs');
   if(ch) ch.style.display='';
   if(cbtn) cbtn.style.display='flex';
-  if(ctabs){
-    ctabs.style.display=sport!=='f1'?'flex':'none';
-    qsa('.comp-tab').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));
-  }
+  const bns=$id('bn-sports');const bnc=$id('bn-comp');
+  if(bns) bns.style.display='none';
+  if(bnc){bnc.style.display='flex';qsa('#bn-comp .bn-btn').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));}
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   loadContent();
   S.timer=setInterval(loadContent,REFRESH_MS);
@@ -749,6 +576,7 @@ function loadContent(){
   if(S.sport==='fanta'){loadFantaGiornata();return;}
   if(!S.compId){loadCompetitionsOverview();return;}
   if(S.view==='calendar') loadCalendar();
+  else if(S.view==='standings') loadStandings();
   else if(S.view==='scorers') loadScorers();
   else loadScores();
 }
@@ -1064,7 +892,7 @@ async function loadScorers(){
 
 /* ── FORMULA 1 ────────────────────────────────────────────── */
 async function loadF1(){
-  const el=$id('content'); $id('view-tabs').style.display='none';
+  const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
     const [rR,dR,cR]=await Promise.all([
@@ -1496,36 +1324,11 @@ async function openTeamView(teamId,name,logo){
 }
 
 /* ── UI SETUP ─────────────────────────────────────────────── */
-function setupSidebar(){
-  $id('hamburger').onclick=()=>toggleSidebar();
-  $id('sidebar-close').onclick=()=>closeSidebar();
-  $id('sidebar-overlay').onclick=()=>closeSidebar();
-  const sb=$id('settings-btn');if(sb)sb.onclick=()=>toggleSidebar();
-}
-function toggleSidebar(){const open=$id('sidebar').classList.toggle('open');$id('sidebar-overlay').classList.toggle('visible',open);}
-function closeSidebar(){$id('sidebar').classList.remove('open');$id('sidebar-overlay').classList.remove('visible');}
-
-function setupCompTabs(){
-  qsa('.comp-tab').forEach(btn=>{
-    btn.onclick=()=>{
-      S.view=btn.dataset.view;
-      qsa('.comp-tab').forEach(b=>b.classList.toggle('active',b===btn));
-      if(S.timer){clearInterval(S.timer);S.timer=null;}
-      loadContent();
-      if(S.view==='scores') S.timer=setInterval(loadContent,REFRESH_MS);
-    };
-  });
-}
 function setupModal(){
   $id('modal-close').onclick=()=>$id('modal-backdrop').classList.remove('open');
   $id('modal-backdrop').onclick=e=>{if(e.target===$id('modal-backdrop'))$id('modal-backdrop').classList.remove('open');};
 }
 function setupTeamView(){$id('tv-back-btn').onclick=()=>$id('team-view-overlay').classList.remove('open');}
-function setupResetBtn(){
-  $id('reset-prefs-btn').onclick=()=>{
-    localStorage.removeItem('sl_lang'); location.reload();
-  };
-}
 function updateTs(){$id('updated-at').textContent=t('aggiornato')+': '+new Date().toLocaleTimeString('it-IT');}
 async function requestNotifs(){if('Notification'in window&&Notification.permission==='default')await Notification.requestPermission();}
 function registerSW(){if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});}
@@ -1537,18 +1340,13 @@ function init(){
   const ch=$id('content-header'); if(ch) ch.style.display='none';
 
   applyLangToDOM();
-  renderSidebar();
   setupTabs();
-  setupSidebar();
-  setupCompTabs();
   setupModal();
   setupTeamView();
   setupSearch();
-  setupResetBtn();
   requestNotifs();
   registerSW();
 
-  // Start with football overview
   switchSport('football');
 }
 
