@@ -117,7 +117,11 @@
     <button class="msport-btn" data-sport="basketball">Basket</button>
     <button class="msport-btn" data-sport="f1">F1</button>
     <button class="msport-btn" data-sport="news">Notizie</button>
+    <button class="msport-btn" data-sport="fanta">Fanta</button>
   </div>
+
+  <!-- DATE NAV -->
+  <div class="date-nav" id="date-nav"></div>
 
   <!-- SIDEBAR OVERLAY (mobile) -->
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
@@ -196,10 +200,13 @@
 
     <!-- MAIN -->
     <main class="main">
-      <div class="content-header" id="content-header">
+      <div class="content-header" id="content-header" style="display:none">
         <div class="content-header-left">
+          <button class="comp-back-btn" id="comp-back-btn" onclick="backToOverview()" title="Tutte le competizioni" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
           <h2 class="page-title" id="page-title">Champions League</h2>
-          <button class="fav-btn" id="fav-btn" title="Aggiungi ai preferiti">Pref.</button>
+          <button class="fav-btn" id="fav-btn" title="Aggiungi ai preferiti" style="display:none">Pref.</button>
         </div>
         <div class="view-tabs" id="view-tabs">
           <button class="view-tab active" data-view="scores">Risultati</button>
