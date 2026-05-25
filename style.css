@@ -9,7 +9,7 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
   --txt:#e6edf3; --txt2:#8b949e; --txt3:#6e7681;
   --blue:#2f81f7; --live:#f85149; --green:#3fb950;
   --yellow:#d29922; --orange:#db6d28;
-  --hh:56px; --sbh:46px; --sw:280px;
+  --hh:56px; --sbh:46px; --dnh:0px; --sw:280px;
   --shadow:0 1px 6px rgba(0,0,0,.4);
 }
 
@@ -435,7 +435,7 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
 .content-header{
   background:var(--card);border-bottom:1px solid var(--border);
   padding:14px 20px 12px;
-  position:sticky;top:calc(var(--hh) + var(--sbh));z-index:100;
+  position:sticky;top:calc(var(--hh) + var(--sbh) + var(--dnh));z-index:100;
 }
 .content-header-left{display:flex;align-items:center;gap:8px;margin-bottom:10px}
 .page-title{font-size:1.2rem;font-weight:800;letter-spacing:-.3px}
@@ -774,7 +774,8 @@ tbody tr:hover td{background:rgba(47,129,247,.05)}
 /* ── Responsive ──────────────────────────────────── */
 @media(max-width:768px){
   .mobile-sport-bar{display:none}
-  .content-header{padding:10px 14px 8px;top:var(--hh)}
+  .date-nav{top:var(--hh)}
+  .content-header{padding:10px 14px 8px;top:calc(var(--hh) + var(--dnh))}
   #content{padding:10px 14px;max-width:100%}
   .match-row{grid-template-columns:50px 1fr 64px 1fr 0;gap:4px;padding:9px 12px}
   .mr-extra{display:none}
@@ -986,3 +987,56 @@ tbody tr:hover td{background:rgba(47,129,247,.05)}
 .pitch-container{display:flex;flex-direction:column;gap:16px}
 .pitch-team-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border)}
 .bench-fanta-badge{font-size:.6rem;font-weight:800;background:var(--green);color:#fff;padding:1px 4px;border-radius:3px;letter-spacing:.3px;flex-shrink:0}
+
+/* ── Date navigation ── */
+.date-nav{
+  display:none;overflow-x:auto;scrollbar-width:none;
+  background:var(--card);border-bottom:1px solid var(--border);
+  position:sticky;top:calc(var(--hh) + var(--sbh));z-index:97;
+}
+.date-nav::-webkit-scrollbar{display:none}
+.dn-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:0 16px;flex-shrink:0;gap:2px;
+  height:52px;border-bottom:3px solid transparent;
+  color:var(--txt3);font-family:inherit;transition:all .15s;
+  border-radius:0;background:none;min-width:60px;
+}
+.dn-btn:hover{background:rgba(255,255,255,.04);color:var(--txt)}
+.dn-btn.active{color:var(--live);border-bottom-color:var(--live);font-weight:700}
+.dn-wd{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.dn-dd{font-size:.65rem;opacity:.75}
+
+/* ── Competition overview ── */
+.comp-overview{background:var(--bg);padding-bottom:16px}
+.comp-group{margin-bottom:2px}
+.comp-group-header{
+  padding:10px 16px;
+  font-size:.68rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.8px;
+  color:var(--txt3);
+  background:var(--card2);
+  border-top:1px solid var(--border);
+  border-bottom:1px solid var(--border);
+}
+.comp-overview-row{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  cursor:pointer;transition:background .1s;
+  background:var(--card);
+}
+.comp-overview-row:hover{background:rgba(47,129,247,.08)}
+.comp-flag{font-size:1.1rem;flex-shrink:0;width:22px;text-align:center;line-height:1}
+.comp-ov-logo{width:24px;height:24px;object-fit:contain;flex-shrink:0}
+.comp-overview-info{flex:1;min-width:0}
+.comp-overview-name{font-size:.9rem;font-weight:600;color:var(--txt)}
+.comp-overview-arrow{color:var(--txt3);flex-shrink:0;opacity:.4}
+
+/* ── Back button in content header ── */
+.comp-back-btn{
+  width:34px;height:34px;border-radius:8px;
+  color:var(--txt2);display:flex;align-items:center;justify-content:center;
+  transition:background .15s;flex-shrink:0;
+}
+.comp-back-btn:hover{background:var(--bg);color:var(--txt)}

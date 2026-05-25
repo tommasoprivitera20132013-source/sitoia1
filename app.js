@@ -222,9 +222,79 @@ const CATS = [
 
 /* ── STATE ────────────────────────────────────────────────── */
 const S = {
-  sport:'football', compId:'ita.1', et:'soccer', view:'scores',
-  timer:null, prevScores:{},
+  sport:'football', compId:null, et:'soccer', view:'scores',
+  timer:null, prevScores:{}, date:null,
 };
+
+/* ── CAT FLAGS & DATE NAV ─────────────────────────────────── */
+const CAT_FLAGS={intl:'🇪🇺',ita:'🇮🇹',eng:'🏴󠁧󠁢󠁥󠁮󠁧󠁿',esp:'🇪🇸',ger:'🇩🇪',fra:'🇫🇷',other:'🌍',basket:'🏀',f1:'🏎️'};
+function compFlag(catId){return CAT_FLAGS[catId]||'🏆';}
+function espnDateParam(){return S.date?`?dates=${S.date}`:'';}
+
+function renderDateNav(){
+  const el=$id('date-nav');if(!el) return;
+  const show=S.sport==='football'||S.sport==='basketball';
+  document.documentElement.style.setProperty('--dnh',show?'52px':'0px');
+  el.style.display=show?'flex':'none';
+  if(!show) return;
+  const today=new Date();
+  let html='';
+  for(let i=-2;i<=7;i++){
+    const d=new Date(today);d.setDate(today.getDate()+i);
+    const isToday=i===0;
+    const wd=d.toLocaleDateString('it-IT',{weekday:'short'}).replace('.','').toUpperCase();
+    const dd=`${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}`;
+    const val=`${d.getFullYear()}${(d.getMonth()+1).toString().padStart(2,'0')}${d.getDate().toString().padStart(2,'0')}`;
+    const active=(S.date===val)||(S.date===null&&isToday);
+    html+=`<button class="dn-btn${active?' active':''}" data-date="${isToday?'':val}">
+      <span class="dn-wd">${isToday?'OGGI':wd}</span>
+      ${!isToday?`<span class="dn-dd">${dd}</span>`:''}
+    </button>`;
+  }
+  el.innerHTML=html;
+  el.querySelectorAll('.dn-btn').forEach(btn=>{
+    btn.onclick=()=>{
+      S.date=btn.dataset.date||null;
+      renderDateNav();
+      if(S.compId) loadContent(); else loadCompetitionsOverview();
+    };
+  });
+  setTimeout(()=>{const a=el.querySelector('.dn-btn.active');if(a)a.scrollIntoView({inline:'center',block:'nearest',behavior:'instant'});},50);
+}
+
+function loadCompetitionsOverview(){
+  const el=$id('content');
+  const ch=$id('content-header');const cbtn=$id('comp-back-btn');
+  if(ch) ch.style.display='none';
+  if(cbtn) cbtn.style.display='none';
+  $id('view-tabs').style.display='none';
+  const cats=CATS.filter(cat=>cat.sport===S.sport||(S.sport==='football'&&(!cat.sport||cat.sport==='football')));
+  let html='<div class="comp-overview">';
+  cats.forEach(cat=>{
+    const flag=compFlag(cat.id);
+    html+=`<div class="comp-group"><div class="comp-group-header">${flag} ${t(cat.labelKey)||cat.labelKey}</div>`;
+    (cat.comps||[]).forEach(comp=>{
+      const logo=LL[comp.id]||'';
+      const sport=cat.sport||'football';
+      const et=comp.et||cat.et||'soccer';
+      html+=`<div class="comp-overview-row" onclick="selectComp('${comp.id}','${et}','${sport}')">
+        ${logo?`<img src="${logo}" class="comp-ov-logo" onerror="this.style.display='none'">`:`<span class="comp-flag">${flag}</span>`}
+        <div class="comp-overview-info"><span class="comp-overview-name">${esc(comp.name)}</span></div>
+        <svg class="comp-overview-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+function backToOverview(){
+  S.compId=null;
+  if(S.timer){clearInterval(S.timer);S.timer=null;}
+  const ch=$id('content-header');if(ch) ch.style.display='none';
+  loadCompetitionsOverview();
+}
 
 /* ── FANTA SQUAD ──────────────────────────────────────────── */
 let FANTA = JSON.parse(localStorage.getItem('sl_fanta')||'[]');
@@ -537,11 +607,15 @@ function switchSport(sport){
   qsa('.sport-tab').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
   qsa('.msport-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
   document.querySelectorAll('.bn-btn[data-sport]').forEach(b=>b.classList.toggle('active',b.dataset.sport===sport));
-  if(sport==='news'){S.sport='news';$id('view-tabs').style.display='none';loadNews();return;}
-  if(sport==='f1'){selectComp('f1.current','f1','f1');return;}
-  if(sport==='basketball'){selectComp('nba','nba','basketball');return;}
-  if(sport==='fanta'){S.sport='fanta';$id('view-tabs').style.display='none';if(S.timer){clearInterval(S.timer);S.timer=null;}loadFantaGiornata();return;}
-  selectComp('ita.1','soccer','football');
+  if(S.timer){clearInterval(S.timer);S.timer=null;}
+  if(sport==='news'){S.sport='news';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadNews();return;}
+  if(sport==='fanta'){S.sport='fanta';S.compId=null;renderDateNav();const ch=$id('content-header');if(ch)ch.style.display='none';loadFantaGiornata();return;}
+  if(sport==='f1'){S.sport='f1';renderDateNav();selectComp('f1.current','f1','f1');return;}
+  // Football/Basketball: show competition overview
+  S.sport=sport;S.compId=null;
+  const ch=$id('content-header');if(ch)ch.style.display='none';
+  renderDateNav();
+  loadCompetitionsOverview();
 }
 
 /* ── COMP SELECT ──────────────────────────────────────────── */
@@ -551,7 +625,11 @@ function selectComp(compId,et,sport){
   qsa('.comp-btn').forEach(b=>b.classList.toggle('active',b.dataset.id===compId));
   const ci=compInfo(compId); $id('page-title').textContent=ci.name||compId;
   const showTabs=sport!=='f1'&&sport!=='news';
-  $id('view-tabs').style.display=showTabs?'':'none';
+  // Show content header + back button
+  const ch=$id('content-header');const cbtn=$id('comp-back-btn');
+  if(ch) ch.style.display='';
+  if(cbtn) cbtn.style.display='flex';
+  $id('view-tabs').style.display=showTabs?'flex':'none';
   if(showTabs) qsa('.view-tab').forEach(b=>b.classList.toggle('active',b.dataset.view==='scores'));
   if(S.timer){clearInterval(S.timer);S.timer=null;}
   loadContent();
@@ -562,6 +640,8 @@ function selectComp(compId,et,sport){
 function loadContent(){
   if(S.sport==='news'){loadNews();return;}
   if(S.sport==='f1'){loadF1();return;}
+  if(S.sport==='fanta'){loadFantaGiornata();return;}
+  if(!S.compId){loadCompetitionsOverview();return;}
   if(S.view==='scores') loadScores();
   else if(S.view==='standings') loadStandings();
   else if(S.view==='scorers') loadScorers();
@@ -572,7 +652,7 @@ async function loadScores(){
   const el=$id('content');
   el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
   try{
-    const url=`${ESPN}/${espnSport()}/${espnPath()}/scoreboard`;
+    const url=`${ESPN}/${espnSport()}/${espnPath()}/scoreboard${espnDateParam()}`;
     const res=await fetch(url);
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
@@ -1280,8 +1360,9 @@ function registerSW(){if('serviceWorker'in navigator)navigator.serviceWorker.reg
 
 /* ── INIT ─────────────────────────────────────────────────── */
 function init(){
-  // Hide onboarding always - no longer used
   const ob=$id('onboarding-overlay'); if(ob) ob.style.display='none';
+  const fb=$id('fav-btn'); if(fb) fb.style.display='none';
+  const ch=$id('content-header'); if(ch) ch.style.display='none';
 
   applyLangToDOM();
   renderSidebar();
@@ -1295,15 +1376,8 @@ function init(){
   requestNotifs();
   registerSW();
 
-  // Hide fav button (no longer used)
-  const fb=$id('fav-btn'); if(fb) fb.style.display='none';
-
-  // Start with Serie A
-  selectComp('ita.1','soccer','football');
-
-  // Sync sport tab to football
-  qsa('.sport-tab').forEach(b=>b.classList.toggle('active',b.dataset.sport==='football'));
-  qsa('.msport-btn').forEach(b=>b.classList.toggle('active',b.dataset.sport==='football'));
+  // Start with football overview
+  switchSport('football');
 }
 
 document.addEventListener('DOMContentLoaded',init);
