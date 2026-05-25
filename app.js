@@ -229,7 +229,152 @@ const S = {
 /* ── FANTA SQUAD ──────────────────────────────────────────── */
 let FANTA = JSON.parse(localStorage.getItem('sl_fanta')||'[]');
 function saveFanta(){localStorage.setItem('sl_fanta',JSON.stringify(FANTA));}
-function inFanta(name){const n=(name||'').toLowerCase().trim();return FANTA.some(p=>{const q=p.toLowerCase().trim();return q===n||n.includes(q)||q.includes(n);});}
+function inFanta(name){
+  const n=(name||'').toLowerCase().trim();
+  return FANTA.some(p=>{
+    const q=(typeof p==='object'?p.name:p).toLowerCase().trim();
+    return q===n||n.includes(q)||q.includes(n);
+  });
+}
+
+const FANTA_PRESETS={
+  classico:{name:'Classico (Fantagazzetta)',roles:['P','D','C','A'],
+    goal:{P:10,D:6.5,C:5,A:4.5},assist:{P:4,D:4.5,C:3,A:3},
+    yellow:{P:-0.5,D:-0.5,C:-0.5,A:-0.5},red:{P:-1,D:-1,C:-1,A:-1},
+    owngoal:-2,penaltySaved:3,penaltyMissed:-3},
+  mantra:{name:'Mantra',roles:['P','Dc','Dd','Ds','E','M','C','T','W','A','Pc'],
+    goal:{P:10,Dc:6,Dd:7.5,Ds:6,E:4.5,M:4.5,C:5,T:5,W:5,A:4.5,Pc:10},
+    assist:{P:2,Dc:4,Dd:4,Ds:4,E:3,M:3,C:3,T:3,W:3,A:3,Pc:2},
+    yellow:{P:-0.5,Dc:-0.5,Dd:-0.5,Ds:-0.5,E:-0.5,M:-0.5,C:-0.5,T:-0.5,W:-0.5,A:-0.5,Pc:-0.5},
+    red:{P:-1,Dc:-1,Dd:-1,Ds:-1,E:-1,M:-1,C:-1,T:-1,W:-1,A:-1,Pc:-1},
+    owngoal:-2,penaltySaved:3,penaltyMissed:-3},
+  custom:{name:'Personalizzato',roles:['P','D','C','A'],
+    goal:{P:10,D:6.5,C:5,A:4.5},assist:{P:4,D:4.5,C:3,A:3},
+    yellow:{P:-0.5,D:-0.5,C:-0.5,A:-0.5},red:{P:-1,D:-1,C:-1,A:-1},
+    owngoal:-2,penaltySaved:3,penaltyMissed:-3},
+};
+let FANTA_MODE=localStorage.getItem('sl_fanta_mode')||'classico';
+function saveFantaMode(m){FANTA_MODE=m;localStorage.setItem('sl_fanta_mode',m);}
+function fantaPreset(){return FANTA_PRESETS[FANTA_MODE]||FANTA_PRESETS.classico;}
+
+function fantaRole(name){
+  const p=FANTA.find(p=>typeof p==='object'&&(p.name||'').toLowerCase()===name.toLowerCase());
+  const roles=fantaPreset().roles;
+  return p?.role||roles[roles.length-1]||'A';
+}
+
+function fantaLivePoints(playerName){
+  window._cachedEvents=window._cachedEvents||[];
+  if(!window._cachedEvents.length) return 0;
+  const bonus=fantaPreset();
+  const role=fantaRole(playerName);
+  let pts=0;
+  const n=(playerName||'').toLowerCase();
+  window._cachedEvents.forEach(ev=>{
+    const type=(ev.type?.text||'').toLowerCase().replace(/\s/g,'');
+    const scorer=(ev.athletesInvolved?.[0]?.displayName||'').toLowerCase();
+    const assister=(ev.athletesInvolved?.[1]?.displayName||'').toLowerCase();
+    const nameMatch=s=>n.includes(s)||s.includes(n);
+    if(nameMatch(scorer)){
+      if(type==='goal') pts+=bonus.goal[role]??4.5;
+      if(type==='owngoal') pts+=bonus.owngoal;
+      if(type.includes('yellow')) pts+=bonus.yellow[role]??-0.5;
+      if(type.includes('red')&&!type.includes('yellow')) pts+=bonus.red[role]??-1;
+      if(type==='penaltymissed') pts+=bonus.penaltyMissed;
+      if(type==='penaltysaved') pts+=bonus.penaltySaved;
+    }
+    if(nameMatch(assister)&&type==='goal') pts+=bonus.assist[role]??3;
+  });
+  return pts;
+}
+
+async function loadFantaGiornata(){
+  const el=$id('content');
+  $id('view-tabs').style.display='none';
+  el.innerHTML=`<div class="loading-state"><div class="spinner"></div><p>${t('caricamento')}</p></div>`;
+
+  if(!FANTA.length){
+    el.innerHTML=`<div class="fanta-giornata"><div class="fg-no-squad">
+      <p style="font-size:1.1rem;font-weight:700;color:var(--txt);margin-bottom:8px">Rosa vuota</p>
+      <p>Aggiungi i tuoi giocatori dalla barra laterale per vedere i punti live</p>
+    </div></div>`;
+    return;
+  }
+
+  // Load scoreboard for current competition
+  try{
+    const res=await fetch(`${ESPN}/${espnSport()}/${espnPath()}/scoreboard`);
+    const data=await res.json();
+    const events=data.events||[];
+    // Cache all events globally
+    window._cachedEvents=events.flatMap(ev=>ev.competitions?.[0]?.details||[]);
+
+    // Calculate points per player
+    const playerData=FANTA.map(p=>{
+      const name=typeof p==='object'?p.name:p;
+      const role=typeof p==='object'?p.role:'A';
+      const pts=fantaLivePoints(name);
+      // Find which match this player is in (from lineups in scoreboard)
+      let matchInfo='';
+      events.forEach(ev=>{
+        const comp=ev.competitions?.[0];
+        const home=comp?.competitors?.find(c=>c.homeAway==='home');
+        const away=comp?.competitors?.find(c=>c.homeAway==='away');
+        if(home&&away){
+          const st=ev.status?.type?.state;
+          if(st==='in'||st==='post'){
+            matchInfo=`${home.team?.shortDisplayName||''} ${home.score??''}-${away.score??''} ${away.team?.shortDisplayName||''}`;
+          }
+        }
+      });
+      // Find events for this player
+      const myEvents=(window._cachedEvents||[]).filter(ev=>{
+        const n=name.toLowerCase();
+        const s=(ev.athletesInvolved?.[0]?.displayName||'').toLowerCase();
+        const a=(ev.athletesInvolved?.[1]?.displayName||'').toLowerCase();
+        return s.includes(n)||n.includes(s)||a.includes(n)||n.includes(a);
+      });
+      const eventLabels=myEvents.map(ev=>{
+        const type=ev.type?.text||'';
+        const min=ev.clock?.displayValue?`${ev.clock.displayValue}'`:'';
+        if(type==='Goal') return `${min} GOL`;
+        if(type==='OwnGoal') return `${min} AUT.`;
+        if(type==='YellowCard') return `${min} AMM.`;
+        if(type==='RedCard') return `${min} ESP.`;
+        const a=(ev.athletesInvolved?.[1]?.displayName||'').toLowerCase();
+        const n2=name.toLowerCase();
+        if((a.includes(n2)||n2.includes(a))&&type==='Goal') return `${min} ASS.`;
+        return '';
+      }).filter(Boolean);
+
+      return {name,role,pts,eventLabels};
+    });
+
+    const total=playerData.reduce((s,p)=>s+p.pts,0);
+    const totalStr=total>0?`+${total.toFixed(1)}`:total.toFixed(1);
+
+    const rows=playerData.map(p=>{
+      const ptsStr=p.pts>0?`+${p.pts.toFixed(1)}`:p.pts.toFixed(1);
+      const ptsCls=p.pts>0?'pos':p.pts<0?'neg':'zero';
+      return `<div class="fg-player-row">
+        <span class="fg-role ${p.role}">${p.role}</span>
+        <span class="fg-name">${esc(p.name)}</span>
+        <span class="fg-event">${esc(p.eventLabels.join(' · '))}</span>
+        <span class="fg-pts ${ptsCls}">${ptsStr}</span>
+      </div>`;
+    }).join('');
+
+    el.innerHTML=`<div class="fanta-giornata">
+      <div class="fg-header">
+        <div class="fg-total">${totalStr}</div>
+        <div class="fg-sub">Punti giornata in corso</div>
+      </div>
+      <div class="fg-players">${rows}</div>
+    </div>`;
+  }catch{
+    el.innerHTML=`<div class="error-state"><p>${t('errore')}</p></div>`;
+  }
+}
 
 /* ── UTILS ────────────────────────────────────────────────── */
 const $id = id => document.getElementById(id);
@@ -315,29 +460,49 @@ function renderSidebar(){
   fantaSec.className='fanta-squad-sec';
   fantaSec.id='fanta-squad-sec';
   function renderFantaSection(){
+    const preset=fantaPreset();
+    const roles=preset.roles||['P','D','C','A'];
+    const defRole=roles[roles.length-1];
     fantaSec.innerHTML=`
       <div class="fanta-squad-header">
         <span style="font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txt3)">Rosa Fantacalcio</span>
         <span class="fanta-cnt">${FANTA.length}</span>
       </div>
+      <div class="fanta-mode-sel">
+        ${Object.keys(FANTA_PRESETS).map(k=>`<button class="fanta-mode-btn${FANTA_MODE===k?' active':''}" data-mode="${k}">${FANTA_PRESETS[k].name}</button>`).join('')}
+      </div>
       <div class="fanta-add-row">
+        <select class="fanta-role-sel" id="fanta-role-sel">
+          ${roles.map(r=>`<option value="${r}">${r}</option>`).join('')}
+        </select>
         <input class="fanta-input" id="fanta-input" type="text" placeholder="Nome giocatore..." autocomplete="off">
         <button class="fanta-add-btn" id="fanta-add-btn" title="Aggiungi">+</button>
       </div>
       <div class="fanta-players" id="fanta-players-list">
         ${FANTA.length===0?`<div class="fanta-empty">Nessun giocatore aggiunto</div>`:
-          FANTA.map((p,i)=>`<div class="fanta-player" data-fi="${i}">
-            <span>${esc(p)}</span>
-            <button class="fanta-remove" data-fi="${i}" title="Rimuovi">×</button>
-          </div>`).join('')}
+          FANTA.map((p,i)=>{
+            const name=typeof p==='object'?p.name:p;
+            const role=typeof p==='object'?p.role:defRole;
+            return `<div class="fanta-player" data-fi="${i}">
+              <span class="fg-role ${role}">${role}</span>
+              <span style="flex:1;margin:0 4px">${esc(name)}</span>
+              <button class="fanta-remove" data-fi="${i}" title="Rimuovi">×</button>
+            </div>`;
+          }).join('')}
       </div>`;
+    fantaSec.querySelectorAll('.fanta-mode-btn').forEach(btn=>{
+      btn.onclick=()=>{saveFantaMode(btn.dataset.mode);renderFantaSection();};
+    });
     const inp=fantaSec.querySelector('#fanta-input');
+    const roleSel=fantaSec.querySelector('#fanta-role-sel');
     const addBtn=fantaSec.querySelector('#fanta-add-btn');
     function addPlayer(){
       const v=(inp.value||'').trim();
       if(!v) return;
-      if(!FANTA.some(p=>p.toLowerCase()===v.toLowerCase())){
-        FANTA.push(v); saveFanta();
+      const role=roleSel?.value||defRole;
+      const nameLC=v.toLowerCase();
+      if(!FANTA.some(p=>(typeof p==='object'?p.name:p).toLowerCase()===nameLC)){
+        FANTA.push({name:v,role}); saveFanta();
       }
       inp.value='';
       renderFantaSection();
@@ -375,6 +540,7 @@ function switchSport(sport){
   if(sport==='news'){S.sport='news';$id('view-tabs').style.display='none';loadNews();return;}
   if(sport==='f1'){selectComp('f1.current','f1','f1');return;}
   if(sport==='basketball'){selectComp('nba','nba','basketball');return;}
+  if(sport==='fanta'){S.sport='fanta';$id('view-tabs').style.display='none';if(S.timer){clearInterval(S.timer);S.timer=null;}loadFantaGiornata();return;}
   selectComp('ita.1','soccer','football');
 }
 
@@ -411,6 +577,7 @@ async function loadScores(){
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
     const events=data.events||[];
+    window._cachedEvents=events.flatMap(ev=>ev.competitions?.[0]?.details||[]);
     checkGoals(events);
     const liveCount=events.filter(e=>e.status?.type?.state==='in').length;
     $id('live-pill').style.display=liveCount?'flex':'none';
@@ -879,32 +1046,70 @@ function renderMEvents(data,body){
   }).join('')}</div>`;
 }
 
+function groupByLine(starters,formation){
+  const parts=(formation||'').split('-').map(Number).filter(n=>!isNaN(n)&&n>0);
+  if(parts.length>=2&&parts.reduce((s,n)=>s+n,0)===starters.length-1){
+    const lines=[[starters[0]]];
+    let idx=1;
+    parts.forEach(n=>{lines.push(starters.slice(idx,idx+n));idx+=n;});
+    return lines.filter(l=>l.length>0);
+  }
+  if(starters.length>=10){
+    return[starters.slice(0,1),starters.slice(1,5),starters.slice(5,8),starters.slice(8,11)];
+  }
+  return[starters];
+}
+
+function renderPitchPlayer(p,isBench){
+  const a=p.athlete||p;
+  const name=a.displayName||a.fullName||'';
+  const num=a.jersey||p.jersey||'';
+  const pos=a.position?.abbreviation||p.position?.abbreviation||'';
+  const isFanta=inFanta(name);
+  const shortName=name.split(' ').slice(-1)[0]||name;
+  if(isBench){
+    return `<div class="bench-player${isFanta?' fanta-p':''}">
+      ${num?`<span class="bench-num">${num}</span>`:''}
+      <span class="bench-name">${esc(shortName)}</span>
+      ${isFanta?'<span class="bench-fanta-badge">TUO</span>':''}
+    </div>`;
+  }
+  return `<div class="pitch-player${isFanta?' fanta-p':''}">
+    <div class="pitch-shirt">${num||pos}</div>
+    <div class="pitch-name">${esc(shortName)}</div>
+    ${isFanta?'<div class="pitch-pts">TUO</div>':''}
+  </div>`;
+}
+
 function renderMLineups(data,body){
   const rosters=data.rosters||data.boxscore?.players||[];
   if(!rosters.length){body.innerHTML=`<div class="empty-state"><p>${t('formazioni_nd')}</p></div>`;return;}
-  const renderP=p=>{
-    const a=p.athlete||p;
-    const photo=`https://a.espncdn.com/i/headshots/soccer/players/full/${a.id}.png`;
-    const num=a.jersey||p.jersey||'',pos=a.position?.abbreviation||p.position?.abbreviation||'';
-    const name=a.displayName||a.fullName||'';
-    const isFanta=inFanta(name);
-    return `<div class="lu-player${isFanta?' lu-fanta':''}"><span class="lu-num">${num}</span>
-      <img src="${photo}" class="lu-photo" onerror="this.className='lu-photo-ph';this.removeAttribute('src')">
-      <span class="lu-name">${esc(name)}</span>
-      ${isFanta?`<span class="lu-fc">TUO</span>`:''}
-      ${pos?`<span class="lu-pos">${pos}</span>`:''}</div>`;
-  };
-  body.innerHTML=`<div class="lineup-split">${rosters.slice(0,2).map(tr=>{
-    const tname=tr.team?.displayName||tr.team?.shortDisplayName||'';
+  const teams=rosters.slice(0,2);
+  let html='<div class="pitch-container">';
+  teams.forEach((tr,ti)=>{
+    const tname=tr.team?.shortDisplayName||tr.team?.displayName||'';
     const tlogo=tr.team?.logos?.[0]?.href||'';
+    const formation=tr.formation?.description||tr.formation?.text||'';
     const players=tr.roster||tr.athletes||[];
-    const starters=players.filter(p=>p.starter!==false&&p.active!==false);
-    const bench=players.filter(p=>p.starter===false);
-    return `<div><div class="lu-head">${tlogo?`<img src="${tlogo}" style="width:18px;height:18px;object-fit:contain;margin-right:6px;vertical-align:middle" onerror="this.style.display='none'">`:''}${esc(tname)}</div>
-      ${(starters.length?starters:players.slice(0,11)).map(renderP).join('')}
-      ${bench.length?`<div class="bench-title">${t('panchina')}</div>${bench.slice(0,7).map(renderP).join('')}`:''}
+    const starters=players.filter(p=>p.starter!==false&&p.active!==false).slice(0,11);
+    const bench=players.filter(p=>p.starter===false).slice(0,7);
+    const src=starters.length>0?starters:players.slice(0,11);
+    const lines=groupByLine(src,formation);
+    const orderedLines=ti===1?[...lines].reverse():lines;
+    html+=`<div class="pitch-team-wrap">
+      <div class="pitch-team-label">
+        ${tlogo?`<img src="${tlogo}" style="width:16px;height:16px;object-fit:contain;vertical-align:middle;margin-right:5px" onerror="this.style.display='none'">`:''}
+        ${esc(tname)}${formation?` <span style="color:var(--txt3);margin-left:6px;font-weight:400">(${formation})</span>`:''}
+      </div>
+      <div class="pitch-wrap"><div class="pitch-field">
+        ${orderedLines.map(line=>`<div class="pitch-row">${line.map(p=>renderPitchPlayer(p,false)).join('')}</div>`).join('')}
+      </div></div>
+      ${bench.length?`<div class="bench-section"><div class="bench-title">${t('panchina')}</div>
+        <div class="bench-row">${bench.map(p=>renderPitchPlayer(p,true)).join('')}</div></div>`:''}
     </div>`;
-  }).join('')}</div>`;
+  });
+  html+='</div>';
+  body.innerHTML=html;
 }
 
 function renderMStats(data,body){

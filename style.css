@@ -1,16 +1,16 @@
 /* ── Reset ──────────────────────────────────────── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;background:#f0f2f5;color:#111827;min-height:100vh;display:flex;flex-direction:column;font-size:14px}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;font-size:14px}
 img{display:block} button{font-family:inherit;cursor:pointer;border:none;background:none}
 
 /* ── Variables ───────────────────────────────────── */
 :root{
-  --bg:#f0f2f5; --card:#ffffff; --border:#e2e5ea;
-  --txt:#111827; --txt2:#6b7280; --txt3:#9ca3af;
-  --blue:#1d4ed8; --live:#dc2626; --green:#16a34a;
-  --yellow:#d97706; --orange:#ea580c;
+  --bg:#0d1117; --card:#161b22; --card2:#1c2128; --border:#30363d;
+  --txt:#e6edf3; --txt2:#8b949e; --txt3:#6e7681;
+  --blue:#2f81f7; --live:#f85149; --green:#3fb950;
+  --yellow:#d29922; --orange:#db6d28;
   --hh:56px; --sw:265px;
-  --shadow:0 1px 4px rgba(0,0,0,.08);
+  --shadow:0 1px 6px rgba(0,0,0,.4);
 }
 
 /* ── Onboarding ─────────────────────────────────── */
@@ -202,9 +202,9 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
 .tv-match-badge{
   font-size:.68rem;font-weight:700;padding:2px 6px;border-radius:4px;
 }
-.tv-match-badge.live{background:rgba(220,38,38,.1);color:var(--live)}
-.tv-match-badge.fin{background:rgba(0,0,0,.06);color:var(--txt3)}
-.tv-match-badge.pre{background:rgba(22,163,74,.1);color:var(--green)}
+.tv-match-badge.live{background:rgba(248,81,73,.15);color:var(--live)}
+.tv-match-badge.fin{background:rgba(255,255,255,.06);color:var(--txt3)}
+.tv-match-badge.pre{background:rgba(63,185,80,.1);color:var(--green)}
 
 .tv-roster-grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;
@@ -467,7 +467,7 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
 }
 .match-section-head{
   display:flex;align-items:center;gap:8px;
-  padding:9px 14px;background:#f8f9fb;
+  padding:9px 14px;background:var(--card2);
   border-bottom:1px solid var(--border);
 }
 .msh-name{
@@ -484,22 +484,22 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
   display:grid;
   grid-template-columns:64px 1fr 72px 1fr 90px;
   align-items:center;gap:6px;
-  padding:10px 14px;border-bottom:1px solid rgba(0,0,0,.04);
+  padding:10px 14px;border-bottom:1px solid var(--border);
   cursor:pointer;transition:background .1s;
 }
 .match-row:last-child{border-bottom:none}
-.match-row:hover{background:rgba(29,78,216,.035)}
-.match-row.is-live{background:rgba(220,38,38,.03)}
-.match-row.is-live:hover{background:rgba(220,38,38,.06)}
+.match-row:hover{background:rgba(47,129,247,.06)}
+.match-row.is-live{background:rgba(248,81,73,.04)}
+.match-row.is-live:hover{background:rgba(248,81,73,.08)}
 
 .mr-time{text-align:center}
 .mr-badge{
   display:inline-block;font-size:.72rem;font-weight:700;
   padding:3px 7px;border-radius:4px;
 }
-.mr-badge.live{background:rgba(220,38,38,.1);color:var(--live)}
-.mr-badge.fin{background:rgba(0,0,0,.06);color:var(--txt3)}
-.mr-badge.pre{background:rgba(22,163,74,.1);color:var(--green)}
+.mr-badge.live{background:rgba(248,81,73,.15);color:var(--live)}
+.mr-badge.fin{background:rgba(255,255,255,.06);color:var(--txt3)}
+.mr-badge.pre{background:rgba(63,185,80,.1);color:var(--green)}
 
 .mr-team{display:flex;align-items:center;gap:7px;overflow:hidden}
 .mr-team.home{justify-content:flex-end}
@@ -527,17 +527,17 @@ thead th{
   padding:9px 12px;text-align:center;
   font-size:.7rem;font-weight:700;text-transform:uppercase;
   letter-spacing:.4px;color:var(--txt3);
-  background:#f8f9fb;border-bottom:1px solid var(--border);white-space:nowrap;
+  background:var(--card2);border-bottom:1px solid var(--border);white-space:nowrap;
 }
 thead th.left{text-align:left}
 tbody td{
   padding:9px 12px;font-size:.875rem;
-  border-bottom:1px solid rgba(0,0,0,.04);
+  border-bottom:1px solid var(--border);
   text-align:center;color:var(--txt2);
 }
 tbody td.left{text-align:left}
 tbody tr:last-child td{border-bottom:none}
-tbody tr:hover td{background:rgba(29,78,216,.025)}
+tbody tr:hover td{background:rgba(47,129,247,.05)}
 .rk{
   display:inline-flex;align-items:center;justify-content:center;
   width:22px;height:22px;border-radius:4px;
@@ -546,7 +546,7 @@ tbody tr:hover td{background:rgba(29,78,216,.025)}
 .rk.ucl{background:rgba(29,78,216,.12);color:var(--blue)}
 .rk.uel{background:rgba(234,88,12,.12);color:var(--orange)}
 .rk.conf{background:rgba(22,163,74,.12);color:var(--green)}
-.rk.r1{background:#fef3c7;color:var(--yellow)}
+.rk.r1{background:rgba(210,153,34,.2);color:var(--yellow)}
 .rk.rel{background:rgba(220,38,38,.1);color:var(--live)}
 .pts{font-weight:800;color:var(--txt)!important}
 .td-team{display:flex;align-items:center;gap:8px}
@@ -794,11 +794,11 @@ tbody tr:hover td{background:rgba(29,78,216,.025)}
 /* ── Match card & goal bar ────────────────────────────────── */
 .match-card{border-bottom:1px solid rgba(0,0,0,.04);cursor:pointer}
 .match-card:last-child{border-bottom:none}
-.match-card:hover .match-row{background:rgba(29,78,216,.035)}
-.match-card.is-live:hover .match-row{background:rgba(220,38,38,.06)}
+.match-card:hover .match-row{background:rgba(47,129,247,.06)}
+.match-card.is-live:hover .match-row{background:rgba(248,81,73,.08)}
 .match-goals-bar{
   padding:3px 14px 7px;display:flex;flex-wrap:wrap;gap:6px 10px;
-  border-top:1px solid rgba(0,0,0,.03);
+  border-top:1px solid var(--border);
 }
 .mg-item{display:inline-flex;align-items:center;gap:4px;font-size:.75rem}
 .mg-min{color:var(--txt3);font-weight:600;min-width:22px}
@@ -811,8 +811,8 @@ tbody tr:hover td{background:rgba(29,78,216,.025)}
 .ad-top{min-height:60px}
 .ad-mid{min-height:80px;margin-top:10px}
 .ad-inner{
-  height:100%;min-height:60px;background:linear-gradient(135deg,#f0f4ff,#e8f0fe);
-  border:1px dashed #c7d7f8;border-radius:8px;
+  height:100%;min-height:60px;background:linear-gradient(135deg,#1c2128,#161b22);
+  border:1px dashed #30363d;border-radius:8px;
   display:flex;align-items:center;justify-content:center;
 }
 .ad-label{font-size:.7rem;font-weight:600;color:#9ca8c5;text-transform:uppercase;letter-spacing:.6px}
@@ -904,3 +904,87 @@ tbody tr:hover td{background:rgba(29,78,216,.025)}
   .sport-tabs{display:none}
   .mobile-sport-bar{display:none}
 }
+
+/* ── Pitch lineup ── */
+.pitch-wrap{border-radius:10px;overflow:hidden;margin-bottom:12px}
+.pitch-field{
+  background:linear-gradient(180deg,#14532d 0%,#166534 30%,#15803d 50%,#166534 70%,#14532d 100%);
+  padding:14px 8px;display:flex;flex-direction:column;gap:14px;
+  border:2px solid rgba(255,255,255,.08);
+  position:relative;
+}
+.pitch-field::before{
+  content:'';position:absolute;left:50%;top:0;bottom:0;
+  width:1px;background:rgba(255,255,255,.12);transform:translateX(-50%);
+}
+.pitch-field::after{
+  content:'';position:absolute;left:50%;top:50%;
+  width:60px;height:60px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.12);
+  transform:translate(-50%,-50%);
+}
+.pitch-row{display:flex;justify-content:space-around;align-items:center;position:relative;z-index:1}
+.pitch-player{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:default;max-width:56px}
+.pitch-shirt{
+  width:34px;height:34px;border-radius:50%;
+  background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.35);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.72rem;font-weight:800;color:#fff;
+}
+.pitch-player.fanta-p .pitch-shirt{background:rgba(63,185,80,.5);border-color:#3fb950;box-shadow:0 0 8px rgba(63,185,80,.4)}
+.pitch-player.bench-p .pitch-shirt{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.15)}
+.pitch-name{font-size:.55rem;color:rgba(255,255,255,.9);text-align:center;max-width:52px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;line-height:1.2}
+.pitch-pts{font-size:.52rem;color:#3fb950;font-weight:800}
+.pitch-team-label{font-size:.65rem;font-weight:700;color:var(--txt2);padding:6px 10px;background:var(--card2);text-align:center;letter-spacing:.5px;text-transform:uppercase}
+.bench-section{padding:8px 10px;background:var(--card2)}
+.bench-title{font-size:.62rem;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px}
+.bench-row{display:flex;flex-wrap:wrap;gap:6px}
+.bench-player{display:flex;align-items:center;gap:5px;background:var(--bg);border-radius:5px;padding:4px 7px;font-size:.72rem}
+.bench-player.fanta-p{border:1px solid rgba(63,185,80,.4);background:rgba(63,185,80,.06)}
+
+/* ── Fantacalcio giornata view ── */
+.fanta-giornata{display:flex;flex-direction:column;gap:10px}
+.fg-header{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.fg-total{font-size:3rem;font-weight:900;color:var(--green);line-height:1}
+.fg-sub{font-size:.75rem;color:var(--txt3);margin-top:4px}
+.fg-players{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.fg-player-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.fg-player-row:last-child{border-bottom:none}
+.fg-role{font-size:.65rem;font-weight:800;padding:2px 6px;border-radius:4px;min-width:22px;text-align:center}
+.fg-role.P{background:rgba(47,129,247,.15);color:var(--blue)}
+.fg-role.D{background:rgba(63,185,80,.15);color:var(--green)}
+.fg-role.C{background:rgba(210,153,34,.15);color:var(--yellow)}
+.fg-role.A{background:rgba(248,81,73,.15);color:var(--live)}
+.fg-name{flex:1;font-size:.875rem;font-weight:600}
+.fg-event{font-size:.72rem;color:var(--txt3);flex:1}
+.fg-pts{font-size:1.1rem;font-weight:800;min-width:36px;text-align:right}
+.fg-pts.pos{color:var(--green)}
+.fg-pts.neg{color:var(--live)}
+.fg-pts.zero{color:var(--txt3)}
+.fg-no-squad{text-align:center;padding:40px 20px;color:var(--txt3);font-size:.875rem}
+
+/* ── Match card dark improvements ── */
+.match-section{background:var(--card);border-color:var(--border)}
+.match-section-head{background:var(--card2)}
+.mr-snum{font-size:1.3rem;font-weight:900;color:var(--txt)}
+.mr-name{color:var(--txt)}
+.mr-badge.live{background:rgba(248,81,73,.15);color:var(--live);animation:livebadge 1.5s ease infinite}
+@keyframes livebadge{0%,100%{opacity:1}50%{opacity:.6}}
+
+/* ── Role selector ── */
+.fanta-role-sel{
+  padding:5px 4px;border-radius:6px;border:1px solid var(--border);
+  background:var(--bg);color:var(--txt);font-family:inherit;
+  font-size:.78rem;font-weight:700;width:52px;flex-shrink:0;
+}
+
+/* ── Scoring mode selector ── */
+.fanta-mode-sel{display:flex;flex-direction:column;gap:4px;padding:0 10px 8px}
+.fanta-mode-btn{width:100%;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--txt2);font-family:inherit;font-size:.75rem;font-weight:600;text-align:left;transition:all .15s;cursor:pointer}
+.fanta-mode-btn.active{background:rgba(63,185,80,.12);border-color:var(--green);color:var(--green);font-weight:700}
+.fanta-mode-btn:hover:not(.active){background:var(--card2);color:var(--txt)}
+
+/* ── Pitch container ── */
+.pitch-container{display:flex;flex-direction:column;gap:16px}
+.pitch-team-wrap{border-radius:10px;overflow:hidden;border:1px solid var(--border)}
+.bench-fanta-badge{font-size:.6rem;font-weight:800;background:var(--green);color:#fff;padding:1px 4px;border-radius:3px;letter-spacing:.3px;flex-shrink:0}
