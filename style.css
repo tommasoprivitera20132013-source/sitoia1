@@ -417,20 +417,27 @@ img{display:block} button{font-family:inherit;cursor:pointer;border:none;backgro
 .main{width:100%;display:flex;flex-direction:column}
 .content-header{
   background:var(--card);border-bottom:1px solid var(--border);
-  padding:14px 20px 12px;
+  padding:12px 20px 0;
   position:sticky;top:calc(var(--hh) + var(--sbh) + var(--dnh));z-index:100;
 }
 .content-header-left{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-.page-title{font-size:1.2rem;font-weight:800;letter-spacing:-.3px}
+.page-title{font-size:1.1rem;font-weight:800;letter-spacing:-.3px}
 .fav-btn{display:none}
-.view-tabs{display:flex;gap:6px}
-.view-tab{
-  padding:6px 18px;font-size:.82rem;font-weight:500;
-  color:var(--txt2);border-radius:20px;border:1px solid var(--border);
-  transition:all .12s;
+
+/* ── Competition tabs (Partite / Calendario / Marcatori) ── */
+.comp-tabs{
+  display:flex;overflow-x:auto;scrollbar-width:none;
+  gap:0;margin:0 -20px;padding:0 16px;
 }
-.view-tab:hover{background:var(--bg);color:var(--txt)}
-.view-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:600}
+.comp-tabs::-webkit-scrollbar{display:none}
+.comp-tab{
+  padding:9px 18px;font-size:.84rem;font-weight:500;
+  color:var(--txt2);white-space:nowrap;background:none;
+  border-bottom:2px solid transparent;border-top:none;border-left:none;border-right:none;
+  transition:all .15s;flex-shrink:0;font-family:inherit;cursor:pointer;
+}
+.comp-tab:hover:not(.active){color:var(--txt)}
+.comp-tab.active{color:var(--blue);border-bottom-color:var(--blue);font-weight:700}
 
 #content{padding:16px 20px;max-width:960px;margin:0 auto;width:100%}
 
@@ -744,7 +751,8 @@ tbody tr:hover td{background:rgba(47,129,247,.05)}
 /* ── Responsive ──────────────────────────────────── */
 @media(max-width:768px){
   .date-nav{top:var(--hh)}
-  .content-header{padding:10px 14px 8px;top:calc(var(--hh) + var(--dnh))}
+  .content-header{padding:10px 14px 0;top:calc(var(--hh) + var(--dnh))}
+  .comp-tabs{margin:0 -14px;padding:0 10px}
   #content{padding:10px 14px;max-width:100%}
   .match-row{padding:9px 12px;gap:8px}
   .mr-time{width:50px}
@@ -968,6 +976,14 @@ tbody tr:hover td{background:rgba(47,129,247,.05)}
 .fg-pts.neg{color:var(--live)}
 .fg-pts.zero{color:var(--txt3)}
 .fg-no-squad{text-align:center;padding:40px 20px;color:var(--txt3);font-size:.875rem}
+
+/* ── Calendar view ── */
+.cal-past{opacity:.65}
+.msh-today{
+  display:inline-block;background:var(--live);color:#fff;
+  font-size:.6rem;font-weight:800;padding:1px 6px;border-radius:4px;
+  vertical-align:middle;margin-right:4px;letter-spacing:.3px;
+}
 
 /* ── Match card dark improvements ── */
 .match-section{background:var(--card);border-color:var(--border)}
