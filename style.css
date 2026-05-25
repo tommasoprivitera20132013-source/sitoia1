@@ -995,29 +995,36 @@ tbody tr:hover td{background:rgba(47,129,247,.05)}
 
 /* ── Competition overview ── */
 .comp-overview{background:var(--bg);padding-bottom:16px}
-.comp-group{margin-bottom:2px}
-.comp-group-header{
-  padding:10px 16px;
-  font-size:.68rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:.8px;
-  color:var(--txt3);
-  background:var(--card2);
-  border-top:1px solid var(--border);
-  border-bottom:1px solid var(--border);
-}
-.comp-overview-row{
-  display:flex;align-items:center;gap:14px;
-  padding:14px 16px;
-  border-bottom:1px solid rgba(255,255,255,.04);
-  cursor:pointer;transition:background .1s;
-  background:var(--card);
-}
-.comp-overview-row:hover{background:rgba(47,129,247,.08)}
 .comp-flag{font-size:1.1rem;flex-shrink:0;width:22px;text-align:center;line-height:1}
-.comp-ov-logo{width:24px;height:24px;object-fit:contain;flex-shrink:0}
-.comp-overview-info{flex:1;min-width:0}
-.comp-overview-name{font-size:.9rem;font-weight:600;color:var(--txt)}
-.comp-overview-arrow{color:var(--txt3);flex-shrink:0;opacity:.4}
+.comp-ov-logo{width:22px;height:22px;object-fit:contain;flex-shrink:0}
+.comp-overview-arrow{color:var(--txt3);flex-shrink:0;opacity:.5}
+
+/* ── Live overview blocks (one per competition that has matches) ── */
+.ov-comp-block{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:10px;overflow:hidden;margin-bottom:10px;
+}
+.ov-comp-header{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;background:var(--card2);
+  border-bottom:1px solid var(--border);
+  cursor:pointer;transition:background .1s;
+}
+.ov-comp-header:hover{background:rgba(47,129,247,.08)}
+.ov-comp-name{
+  flex:1;font-size:.75rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);
+}
+.ov-live-dot{
+  width:6px;height:6px;border-radius:50%;background:var(--live);
+  animation:pulse 1.3s ease infinite;flex-shrink:0;
+}
+.ov-match-count{
+  font-size:.68rem;font-weight:700;color:var(--txt3);
+  background:var(--bg);padding:2px 7px;border-radius:10px;flex-shrink:0;
+}
+.ov-matches .match-card{border-bottom:1px solid var(--border)}
+.ov-matches .match-card:last-child{border-bottom:none}
 
 /* ── Back button in content header ── */
 .comp-back-btn{
