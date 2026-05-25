@@ -111,15 +111,6 @@
     </div>
   </header>
 
-  <!-- MOBILE SPORT BAR -->
-  <div class="mobile-sport-bar" id="mobile-sport-bar">
-    <button class="msport-btn active" data-sport="football">Calcio</button>
-    <button class="msport-btn" data-sport="basketball">Basket</button>
-    <button class="msport-btn" data-sport="f1">F1</button>
-    <button class="msport-btn" data-sport="news">Notizie</button>
-    <button class="msport-btn" data-sport="fanta">Fanta</button>
-  </div>
-
   <!-- DATE NAV -->
   <div class="date-nav" id="date-nav"></div>
 
@@ -253,25 +244,9 @@
 
   <!-- BOTTOM NAV (mobile/app) -->
   <nav class="bottom-nav" id="bottom-nav">
-    <button class="bn-btn active" data-sport="football" onclick="switchSport('football')">
-      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 6.9 17.1M12 2a10 10 0 0 0-6.9 17.1M12 22v-4M6 17l2-3M18 17l-2-3M8 6l4 3 4-3"/></svg>
-      <span class="bn-label">Calcio</span>
-    </button>
-    <button class="bn-btn" data-sport="basketball" onclick="switchSport('basketball')">
-      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M4.9 4.9a14 14 0 0 1 14.2 14.2M4.9 19.1a14 14 0 0 1 14.2-14.2M2 12h20M12 2v20"/></svg>
-      <span class="bn-label">Basket</span>
-    </button>
-    <button class="bn-btn" data-sport="f1" onclick="switchSport('f1')">
-      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 17h4l3-9 4 9h4M1 17l2-4M23 17l-2-4M7 13h10"/></svg>
-      <span class="bn-label">F1</span>
-    </button>
-    <button class="bn-btn" data-sport="fanta" onclick="switchSport('fanta')">
-      <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      <span class="bn-label">Fanta</span>
-    </button>
-    <button class="bn-btn" data-action="menu" onclick="toggleSidebar()">
+    <button class="bn-btn" onclick="toggleSidebar()">
       <svg class="bn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      <span class="bn-label">Altro</span>
+      <span class="bn-label">Menu</span>
     </button>
   </nav>
 
