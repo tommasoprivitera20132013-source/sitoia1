@@ -697,24 +697,22 @@ function matchCard(ev){
   const hasScore=home.score!==undefined&&away.score!==undefined&&ev.status?.type?.state!=='pre';
   const hL=home.team?.logo||`https://a.espncdn.com/i/teamlogos/soccer/500/${home.team?.id}.png`;
   const aL=away.team?.logo||`https://a.espncdn.com/i/teamlogos/soccer/500/${away.team?.id}.png`;
-  const tv=TV_MAP[S.compId]||'';
   const goalsHtml=matchGoals(comp);
   return `<div class="match-card${isLive?' is-live':''}" data-eid="${ev.id}">
     <div class="match-row${isLive?' is-live':''}">
       <div class="mr-time"><span class="mr-badge ${st.cls}">${st.label}</span></div>
-      <div class="mr-team home">
-        <span class="mr-name${home.winner?' bold':''}">${esc(home.team?.shortDisplayName||home.team?.displayName||'')}</span>
-        <img src="${hL}" class="mr-crest" onerror="this.style.display='none'">
+      <div class="mr-teams">
+        <div class="mr-team-row">
+          <img src="${hL}" class="mr-crest" onerror="this.style.display='none'">
+          <span class="mr-name${home.winner?' bold':''}">${esc(home.team?.shortDisplayName||home.team?.displayName||'')}</span>
+          ${hasScore?`<span class="mr-tscore${home.winner?' bold':''}">${home.score}</span>`:''}
+        </div>
+        <div class="mr-team-row">
+          <img src="${aL}" class="mr-crest" onerror="this.style.display='none'">
+          <span class="mr-name${away.winner?' bold':''}">${esc(away.team?.shortDisplayName||away.team?.displayName||'')}</span>
+          ${hasScore?`<span class="mr-tscore${away.winner?' bold':''}">${away.score}</span>`:''}
+        </div>
       </div>
-      <div class="mr-score">${hasScore
-        ?`<span class="mr-snum${home.winner?' bold':''}">${home.score}</span><span class="mr-ssep">-</span><span class="mr-snum${away.winner?' bold':''}">${away.score}</span>`
-        :`<span class="mr-ssep" style="font-size:.75rem;color:var(--txt3)">vs</span>`}
-      </div>
-      <div class="mr-team away">
-        <img src="${aL}" class="mr-crest" onerror="this.style.display='none'">
-        <span class="mr-name${away.winner?' bold':''}">${esc(away.team?.shortDisplayName||away.team?.displayName||'')}</span>
-      </div>
-      <div class="mr-extra">${tv?`<span class="mr-tv">${tv}</span>`:''}</div>
     </div>
     ${goalsHtml?`<div class="match-goals-bar">${goalsHtml}</div>`:''}
   </div>`;
@@ -1021,7 +1019,19 @@ async function loadNews(){
   }
 
   if(!items.length){el.innerHTML=`<div class="empty-state"><p>${t('notizie_nd')}</p></div>`;return;}
-  el.innerHTML=`<div class="news-list">${items.slice(0,30).map(item=>{
+  const all=items.slice(0,30);
+  const [hero,...rest]=all;
+  const heroImg=hero.thumbnail||'';
+  const catTabs=['TUTTE','CALCIO','SERIE A','BASKET','F1','TENNIS','MOTORI'];
+  const catsHtml=`<div class="news-cats-bar">${catTabs.map((c,i)=>`<button class="ncat-btn${i===0?' active':''}">${c}</button>`).join('')}</div>`;
+  const heroHtml=`<a class="news-hero" href="${esc(hero.link||'#')}" target="_blank" rel="noopener noreferrer">
+    ${heroImg?`<img src="${esc(heroImg)}" class="news-hero-img" onerror="this.style.display='none'" loading="lazy">`:''}
+    <div class="news-hero-body">
+      <div class="news-meta"><span class="news-src">${esc(hero.source)}</span>${hero.pubDate?' · '+fmtDate(hero.pubDate):''}</div>
+      <div class="news-hero-hl">${esc(hero.title||'')}</div>
+    </div>
+  </a>`;
+  const restHtml=rest.map(item=>{
     const img=item.thumbnail||'';
     return `<a class="news-item" href="${esc(item.link||'#')}" target="_blank" rel="noopener noreferrer">
       ${img?`<img src="${esc(img)}" class="news-thumb" onerror="this.style.display='none'" loading="lazy">`:''}
@@ -1030,7 +1040,11 @@ async function loadNews(){
         <div class="news-hl">${esc(item.title||'')}</div>
       </div>
     </a>`;
-  }).join('')}</div>`;
+  }).join('');
+  el.innerHTML=`${catsHtml}${heroHtml}<div class="news-list">${restHtml}</div>`;
+  el.querySelectorAll('.ncat-btn').forEach(btn=>{
+    btn.onclick=()=>{el.querySelectorAll('.ncat-btn').forEach(b=>b.classList.toggle('active',b===btn));};
+  });
   updateTs();
 }
 
@@ -1109,6 +1123,8 @@ function evtInfo(type){
 function renderMEvents(data,body){
   const details=data.header?.competitions?.[0]?.details||[];
   if(!details.length){body.innerHTML=`<div class="empty-state"><p>${t('nessun_evento')}</p></div>`;return;}
+  const hComp=data.header?.competitions?.[0];
+  const homeId=hComp?.competitors?.find(c=>c.homeAway==='home')?.team?.id||'';
   const sorted=[...details].sort((a,b)=>(parseInt(a.clock?.displayValue)||0)-(parseInt(b.clock?.displayValue)||0));
   body.innerHTML=`<div class="events-list">${sorted.map(ev=>{
     const type=ev.type?.text||ev.type?.name||'';
@@ -1116,12 +1132,12 @@ function renderMEvents(data,body){
     const min=ev.clock?.displayValue?`${ev.clock.displayValue}'`:'';
     const player=ev.athletesInvolved?.[0]?.displayName||'';
     const assist=ev.athletesInvolved?.[1]?.displayName||'';
-    const team=ev.team?.shortDisplayName||'';
-    return `<div class="ev-row"><span class="ev-time">${min}</span>
+    const isAway=ev.team?.id&&homeId&&ev.team.id!==homeId;
+    return `<div class="ev-row${isAway?' away':''}">
+      <span class="ev-time">${min}</span>
       <span class="ev-badge ${info.cls}">${info.label}</span>
       <div class="ev-txt"><strong>${esc(player)}</strong>
         ${assist?`<div class="ev-sub">${t('ass')}: ${esc(assist)}</div>`:''}
-        ${team?`<div class="ev-sub">${esc(team)}</div>`:''}
       </div></div>`;
   }).join('')}</div>`;
 }
